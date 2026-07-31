@@ -1,0 +1,77 @@
+[h1]Keep the right amount — in stacks your pawns can actually use[/h1]
+
+Storage Group Quotas adds [b]per-item limits[/b] to vanilla storage groups. Linked shelves are counted together as one group.
+
+It is especially useful for ammo depots: instead of one huge pile that everyone may wait to reserve, you can keep several real stacks as separate pickup targets.
+
+[h2]Choose the mode you need[/h2]
+[list]
+[*][b]Entire storage count[/b] — Keep no more than X of each item type in this group. Best for medicine, meals, shells, and anything where only the total matters.
+[*][b]Similar stacks ×N[/b] — Keep at most X items per stack and at most N physical stacks. For example, 25 × 4 gives a total capacity of 100 across up to four stacks.
+[/list]
+
+With some hauling or reservation optimization mods, one physical stack may be reserved by only one pawn or job at a time. Multiple stacks provide separate reservation targets and can reduce queues when several weapons reload or are resupplied together.
+
+[h2]What happens to excess items?[/h2]
+[list]
+[*]Incoming hauling respects the group's remaining quota.
+[*]Existing excess is moved by normal hauling jobs — never deleted or teleported.
+[*]Haulers first use valid storage outside the group. If none exists, they place the excess on a reachable floor cell outside the group.
+[*]In Similar stacks mode, haulers first try to split or consolidate stacks inside the group. Anything that cannot fit the selected layout is moved outside.
+[/list]
+
+[h2]How to use[/h2]
+Select a shelf or stockpile → open [b]Storage[/b] → click [b]Quotas[/b] → choose a mode and set a default. Individual items can override that default.
+
+[b]Important:[/b] limits are calculated separately for each item type. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 uses that item's current stack limit. The mod does not change ThingDef.stackLimit globally.
+
+[h2]Requirements and compatibility[/h2]
+[list]
+[*]RimWorld 1.6
+[*][b]Requires Harmony[/b]
+[*]Works with Combat Extended ammunition; Combat Extended is not required
+[*]Optional Pick Up And Haul destination-capacity support
+[*][b]Incompatible with Stack Gap[/b] — disable it first; its settings are not migrated
+[/list]
+
+[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]Source code, full documentation, and issue tracker[/url]
+
+[hr][/hr]
+
+[h1]存得刚刚好，也让 Pawn 真正取用得到[/h1]
+
+Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分别计算的数量上限[/b]。链接在一起的货架会作为一个整体统计。
+
+它尤其适合弹药库：与其让所有 Pawn 等待同一个可能已被预留的大堆，不如保留多个真实堆栈，提供彼此独立的取用目标。
+
+[h2]选择需要的模式[/h2]
+[list]
+[*][b]整个仓库数量[/b] — 该组内每种物品最多保留 X 件。适合药品、食物、炮弹等只关心总数的物品。
+[*][b]类似堆栈 ×N[/b] — 每堆最多 X 件，最多保留 N 个真实堆栈。例如 25 × 4 表示最多四堆、总容量 100。
+[/list]
+
+在部分搬运或预留优化模组下，一堆实体物品同时可能只能被一个 Pawn 或任务预留。多个堆栈能提供彼此独立的预留目标，减少多件武器同时换弹或补给时的排队。
+
+[h2]超量物品会去哪？[/h2]
+[list]
+[*]新的入库搬运不会超过存储组的剩余配额。
+[*]已经超量的物品会由 Pawn 通过正常搬运移走，不会被删除或瞬移。
+[*]搬运工会优先送到该组之外的合法仓储；没有可用仓储时，则放到该组外可到达的地面。
+[*]在“类似堆栈 ×N”模式中，搬运工会先尝试在组内拆分或归并；无法纳入所选布局的部分会移到组外。
+[/list]
+
+[h2]使用方法[/h2]
+选择货架或仓储区 → 打开[b]存储[/b]标签 → 点击[b]存储配额[/b] → 选择模式并设置默认值。也可以为单个物品设置覆盖值。
+
+[b]请注意：[/b]配额按每种物品分别计算。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，0 表示使用该物品当前的堆叠上限。本模组不会全局修改 ThingDef.stackLimit。
+
+[h2]需求与兼容[/h2]
+[list]
+[*]RimWorld 1.6
+[*][b]需要 Harmony[/b]
+[*]可用于 Combat Extended 弹药，但不强制依赖 CE
+[*]为 Pick Up And Haul 提供可选的目标容量适配
+[*][b]与 Stack Gap 不兼容[/b] — 请先禁用；旧配置不会迁移
+[/list]
+
+[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]源代码、完整说明与问题反馈[/url]

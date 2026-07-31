@@ -22,15 +22,15 @@
   <incompatibleWith>
     <li>Andromeda.StackGap</li>
   </incompatibleWith>
-  <description>Storage-group-wide item quotas for RimWorld 1.6.
+  <description>Set per-item limits for an entire vanilla storage group. Linked shelves share one quota.
 
-Choose between a total-count quota for the entire vanilla storage group and a Similar stacks ×N mode that keeps several independently reservable stacks for combat logistics. Incoming hauling respects the remaining quota. Exact excess quantities are hauled outside the group instead of being left in place.
+Use Entire storage count when only the total matters, or Similar stacks ×N to keep several physical stacks as separate reservation targets for ammo and urgent supplies. Incoming hauling respects the remaining quota. Existing excess is moved outside the group through normal hauling jobs, never deleted.
 
-Requires Harmony. Includes optional Pick Up And Haul compatibility. Incompatible with Stack Gap.
+Requires Harmony. Combat Extended ammunition is supported without a hard dependency. Includes optional Pick Up And Haul destination-capacity support. Incompatible with Stack Gap.
 
-为 RimWorld 1.6 提供作用于整个原版“存储组”的物品配额。
+为整个原版存储组设置按物品分别计算的数量上限；链接货架共享同一份配额。
 
-可切换“整个仓库数量”和“类似堆栈 ×N”模式。后者会保留多个可由不同 Pawn 分别预留的独立堆栈，方便战斗时同时换弹。入库搬运遵守剩余配额，超量部分会按准确数量搬出存储组。
+只关心总量时使用“整个仓库数量”；需要为弹药或紧急补给保留多个独立预留目标时，使用“类似堆栈 ×N”。新的入库搬运会遵守剩余配额，已有超量物品会通过正常搬运移出该组，不会被删除。
 
-需要 Harmony；可选兼容 Pick Up And Haul；与 Stack Gap 不兼容。</description>
+需要 Harmony。支持 Combat Extended 弹药但不强制依赖 CE；为 Pick Up And Haul 提供可选的目标容量适配；与 Stack Gap 不兼容。</description>
 </ModMetaData>
