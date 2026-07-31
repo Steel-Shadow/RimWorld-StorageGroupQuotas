@@ -13,17 +13,23 @@
   <SGQ_Unlimited>不限</SGQ_Unlimited>
   <SGQ_Search>搜索物品……</SGQ_Search>
   <SGQ_Item>物品</SGQ_Item>
+  <SGQ_ItemOrCategory>分类 / 物品</SGQ_ItemOrCategory>
   <SGQ_CurrentAndStacks>现有 / 堆数</SGQ_CurrentAndStacks>
   <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
   <SGQ_TotalQuota>总数量上限</SGQ_TotalQuota>
   <SGQ_PerStackQuota>每堆上限</SGQ_PerStackQuota>
-  <SGQ_Inherit>使用默认值</SGQ_Inherit>
+  <SGQ_Inherit>继承值</SGQ_Inherit>
   <SGQ_Override>单独设置</SGQ_Override>
-  <SGQ_RemoveOverride>恢复默认值</SGQ_RemoveOverride>
+  <SGQ_RemoveOverride>恢复继承</SGQ_RemoveOverride>
   <SGQ_OverflowStatus>等待移走的超量物品：{0}</SGQ_OverflowStatus>
   <SGQ_RebalanceStatus>等待拆分或合并的堆栈：{0}</SGQ_RebalanceStatus>
   <SGQ_NoOverflow>该存储组当前没有超量物品。</SGQ_NoOverflow>
-  <SGQ_ZeroHelpTotal>0 表示不限；单项设置会覆盖默认配额。</SGQ_ZeroHelpTotal>
-  <SGQ_ZeroHelpSimilar>0 使用物品当前堆叠上限；实际每堆数量不会超过该上限；总容量＝每堆数量 × N。</SGQ_ZeroHelpSimilar>
+  <SGQ_ZeroHelpTotal>0 表示不限；物品依次继承最近的已设置分类和全局默认值。</SGQ_ZeroHelpTotal>
+  <SGQ_ZeroHelpSimilar>0 使用各物品当前堆叠上限；物品继承最近的已设置分类；总容量＝每堆数量 × N。</SGQ_ZeroHelpSimilar>
   <SGQ_NativeStackLimit>原版上限</SGQ_NativeStackLimit>
+  <SGQ_GlobalDefault>全局默认值</SGQ_GlobalDefault>
+  <SGQ_InheritedFrom>继承自：{0}。</SGQ_InheritedFrom>
+  <SGQ_CategoryQuotaTooltip>分类值会由每种后代物品分别继承，并不是整个分类共用的总数。</SGQ_CategoryQuotaTooltip>
+  <SGQ_ExpandCategory>展开{0}</SGQ_ExpandCategory>
+  <SGQ_CollapseCategory>折叠{0}</SGQ_CollapseCategory>
 </LanguageData>

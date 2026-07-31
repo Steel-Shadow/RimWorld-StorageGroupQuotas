@@ -4,6 +4,8 @@ Storage Group Quotas adds [b]per-item limits[/b] to vanilla storage groups. Link
 
 It is especially useful for ammo depots: instead of one huge pile that everyone may wait to reserve, you can keep several real stacks as separate pickup targets.
 
+The quota list uses a familiar category tree. Set one value for a broad category, refine it on a child category, and override only the exceptional items.
+
 [h2]Choose the mode you need[/h2]
 [list]
 [*][b]Entire storage count[/b] — Keep no more than X of each item type in this group. Best for medicine, meals, shells, and anything where only the total matters.
@@ -21,9 +23,9 @@ With some hauling or reservation optimization mods, one physical stack may be re
 [/list]
 
 [h2]How to use[/h2]
-Select a shelf or stockpile → open [b]Storage[/b] → click [b]Quotas[/b] → choose a mode and set a default. Individual items can override that default.
+Select a shelf or stockpile → open [b]Storage[/b] → click [b]Quotas[/b] → choose a mode and set the global default. Expand the tree to set a category or individual item; unset children inherit the nearest configured parent.
 
-[b]Important:[/b] limits are calculated separately for each item type. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 uses that item's current stack limit. The mod does not change ThingDef.stackLimit globally.
+[b]Important:[/b] a category value is calculated separately for every descendant item; it is not one shared total for the whole category. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 uses that item's current stack limit. The mod does not change ThingDef.stackLimit globally.
 
 [h2]Requirements and compatibility[/h2]
 [list]
@@ -44,6 +46,8 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 
 它尤其适合弹药库：与其让所有 Pawn 等待同一个可能已被预留的大堆，不如保留多个真实堆栈，提供彼此独立的取用目标。
 
+配额列表采用熟悉的分类树：可以先给大类设置一个值，再在子类中细分，只覆盖少数例外物品。
+
 [h2]选择需要的模式[/h2]
 [list]
 [*][b]整个仓库数量[/b] — 该组内每种物品最多保留 X 件。适合药品、食物、炮弹等只关心总数的物品。
@@ -61,9 +65,9 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 [/list]
 
 [h2]使用方法[/h2]
-选择货架或仓储区 → 打开[b]存储[/b]标签 → 点击[b]存储配额[/b] → 选择模式并设置默认值。也可以为单个物品设置覆盖值。
+选择货架或仓储区 → 打开[b]存储[/b]标签 → 点击[b]存储配额[/b] → 选择模式并设置全局默认值。展开分类树后可设置分类或单个物品；未设置的子项会继承最近的父级。
 
-[b]请注意：[/b]配额按每种物品分别计算。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，0 表示使用该物品当前的堆叠上限。本模组不会全局修改 ThingDef.stackLimit。
+[b]请注意：[/b]分类值会由每种后代物品分别计算，并不是整个分类共用一个总额。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，0 表示使用该物品当前的堆叠上限。本模组不会全局修改 ThingDef.stackLimit。
 
 [h2]需求与兼容[/h2]
 [list]

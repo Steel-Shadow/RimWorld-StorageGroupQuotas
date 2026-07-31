@@ -13,17 +13,23 @@
   <SGQ_Unlimited>Unlimited</SGQ_Unlimited>
   <SGQ_Search>Search items...</SGQ_Search>
   <SGQ_Item>Item</SGQ_Item>
+  <SGQ_ItemOrCategory>Category / item</SGQ_ItemOrCategory>
   <SGQ_CurrentAndStacks>Current / stacks</SGQ_CurrentAndStacks>
   <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
   <SGQ_TotalQuota>Total quota</SGQ_TotalQuota>
   <SGQ_PerStackQuota>Per-stack quota</SGQ_PerStackQuota>
-  <SGQ_Inherit>Default</SGQ_Inherit>
+  <SGQ_Inherit>Inherited</SGQ_Inherit>
   <SGQ_Override>Override</SGQ_Override>
-  <SGQ_RemoveOverride>Use default</SGQ_RemoveOverride>
+  <SGQ_RemoveOverride>Use inherited</SGQ_RemoveOverride>
   <SGQ_OverflowStatus>Overflow waiting to be moved: {0}</SGQ_OverflowStatus>
   <SGQ_RebalanceStatus>Stacks waiting to be split or merged: {0}</SGQ_RebalanceStatus>
   <SGQ_NoOverflow>No overflow in this storage group.</SGQ_NoOverflow>
-  <SGQ_ZeroHelpTotal>0 means unlimited. Per-item values override the default.</SGQ_ZeroHelpTotal>
-  <SGQ_ZeroHelpSimilar>0 uses the current native stack limit. Effective per-stack quota cannot exceed that limit; total = per stack × N.</SGQ_ZeroHelpSimilar>
+  <SGQ_ZeroHelpTotal>0 means unlimited. Items inherit the nearest configured category, then the global default.</SGQ_ZeroHelpTotal>
+  <SGQ_ZeroHelpSimilar>0 uses each item's native stack limit. Items inherit the nearest configured category; total = per stack × N.</SGQ_ZeroHelpSimilar>
   <SGQ_NativeStackLimit>Native limit</SGQ_NativeStackLimit>
+  <SGQ_GlobalDefault>Global default</SGQ_GlobalDefault>
+  <SGQ_InheritedFrom>Inherited from {0}.</SGQ_InheritedFrom>
+  <SGQ_CategoryQuotaTooltip>A category value is inherited separately by each descendant item; it is not one shared total for the category.</SGQ_CategoryQuotaTooltip>
+  <SGQ_ExpandCategory>Expand {0}</SGQ_ExpandCategory>
+  <SGQ_CollapseCategory>Collapse {0}</SGQ_CollapseCategory>
 </LanguageData>

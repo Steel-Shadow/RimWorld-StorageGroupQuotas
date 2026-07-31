@@ -17,6 +17,7 @@ namespace StorageGroupQuotas
         private QuotaMode quotaMode;
         private int similarStackCount = 2;
         private Dictionary<string, int> upperByDefName = new Dictionary<string, int>();
+        private Dictionary<string, int> upperByCategoryDefName = new Dictionary<string, int>();
 
         public QuotaMode Mode
         {
@@ -38,9 +39,12 @@ namespace StorageGroupQuotas
 
         public bool Active => quotaMode == QuotaMode.SimilarStacks
             || defaultUpper > 0
-            || upperByDefName.Count > 0;
+            || upperByDefName.Count > 0
+            || upperByCategoryDefName.Count > 0;
 
         public IEnumerable<string> OverriddenDefNames => upperByDefName.Keys;
+
+        public IEnumerable<string> OverriddenCategoryDefNames => upperByCategoryDefName.Keys;
 
         public int EffectiveValue(ThingDef def)
         {
@@ -49,7 +53,44 @@ namespace StorageGroupQuotas
                 return upper;
             }
 
-            return defaultUpper;
+            return InheritedValue(def);
+        }
+
+        public int EffectiveValue(ThingCategoryDef category)
+        {
+            if (category != null
+                && upperByCategoryDefName.TryGetValue(category.defName, out int upper))
+            {
+                return upper;
+            }
+
+            return InheritedValue(category);
+        }
+
+        public int InheritedValue(ThingDef def)
+        {
+            return TryFindClosestCategoryOverride(def, out int value, out _)
+                ? value
+                : defaultUpper;
+        }
+
+        public int InheritedValue(ThingCategoryDef category)
+        {
+            return TryFindCategoryOverride(category?.parent, out int value, out _)
+                ? value
+                : defaultUpper;
+        }
+
+        public ThingCategoryDef InheritedCategory(ThingDef def)
+        {
+            TryFindClosestCategoryOverride(def, out _, out ThingCategoryDef category);
+            return category;
+        }
+
+        public ThingCategoryDef InheritedCategory(ThingCategoryDef category)
+        {
+            TryFindCategoryOverride(category?.parent, out _, out ThingCategoryDef parent);
+            return parent;
         }
 
         public int EffectivePerStackUpper(ThingDef def)
@@ -104,6 +145,37 @@ namespace StorageGroupQuotas
             }
         }
 
+        public bool HasOverride(ThingCategoryDef category)
+        {
+            return category != null && upperByCategoryDefName.ContainsKey(category.defName);
+        }
+
+        public int GetOverride(ThingCategoryDef category)
+        {
+            return category != null
+                && upperByCategoryDefName.TryGetValue(category.defName, out int value)
+                ? value
+                : 0;
+        }
+
+        public void SetOverride(ThingCategoryDef category, int upper)
+        {
+            if (category == null)
+            {
+                return;
+            }
+
+            upperByCategoryDefName[category.defName] = Math.Max(0, upper);
+        }
+
+        public void RemoveOverride(ThingCategoryDef category)
+        {
+            if (category != null)
+            {
+                upperByCategoryDefName.Remove(category.defName);
+            }
+        }
+
         public StorageQuotaData Clone()
         {
             return new StorageQuotaData
@@ -111,7 +183,8 @@ namespace StorageGroupQuotas
                 defaultUpper = defaultUpper,
                 quotaMode = quotaMode,
                 similarStackCount = similarStackCount,
-                upperByDefName = new Dictionary<string, int>(upperByDefName)
+                upperByDefName = new Dictionary<string, int>(upperByDefName),
+                upperByCategoryDefName = new Dictionary<string, int>(upperByCategoryDefName)
             };
         }
 
@@ -121,15 +194,54 @@ namespace StorageGroupQuotas
             Scribe_Values.Look(ref quotaMode, "quotaMode", QuotaMode.TotalCount);
             Scribe_Values.Look(ref similarStackCount, "similarStackCount", 2);
             Scribe_Collections.Look(ref upperByDefName, "upperByDefName", LookMode.Value, LookMode.Value);
-            if (Scribe.mode == LoadSaveMode.PostLoadInit && upperByDefName == null)
-            {
-                upperByDefName = new Dictionary<string, int>();
-            }
-
+            Scribe_Collections.Look(
+                ref upperByCategoryDefName,
+                "upperByCategoryDefName",
+                LookMode.Value,
+                LookMode.Value);
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
+                if (upperByDefName == null)
+                {
+                    upperByDefName = new Dictionary<string, int>();
+                }
+
+                if (upperByCategoryDefName == null)
+                {
+                    upperByCategoryDefName = new Dictionary<string, int>();
+                }
+
                 similarStackCount = Math.Max(1, similarStackCount);
             }
+        }
+
+        private bool TryFindClosestCategoryOverride(
+            ThingDef def,
+            out int value,
+            out ThingCategoryDef source)
+        {
+            return TryFindCategoryOverride(def?.FirstThingCategory, out value, out source);
+        }
+
+        private bool TryFindCategoryOverride(
+            ThingCategoryDef category,
+            out int value,
+            out ThingCategoryDef source)
+        {
+            for (int distance = 0; category != null && distance < 128; distance++)
+            {
+                if (upperByCategoryDefName.TryGetValue(category.defName, out value))
+                {
+                    source = category;
+                    return true;
+                }
+
+                category = category.parent;
+            }
+
+            value = 0;
+            source = null;
+            return false;
         }
     }
 }
