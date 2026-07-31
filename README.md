@@ -115,12 +115,27 @@ Yes. Capacity is based on currently spawned contents; several already-created jo
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | Ordinary hauling jobs for exact overflow removal and similar-stack rebalancing. |
 | `Source/Window_StorageQuotas.cs` | Quota configuration window in the vanilla Storage tab. |
 | `Source/packages.lock.json` | Locked compile-time reference packages for reproducible builds. |
+| `About/About.xml` | Package identity, supported game version, dependencies, load-order rules, and incompatibilities. |
+| `About/PublishedFileId.txt` | Permanent Steam Workshop identity used for updates and mod-manager metadata. |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | Registration of the custom hauling `WorkGiverDef`. |
 | `Languages/` | English and Simplified Chinese keyed translations. |
 | `WorkshopDescription.bbcode` | Canonical player-facing Steam Workshop description. |
 | `.github/workflows/build-release.yml` | Locked CI build, installable archive, and rolling prerelease publication. |
 
 The mod deliberately has no custom `JobDriver`, `GameComponent`, `MapComponent`, or global `ModSettings`. It uses vanilla `JobDefOf.HaulToCell` jobs and stores data with the relevant vanilla `StorageSettings`.
+
+#### Dependencies and automatic sorting
+
+`About/About.xml` is the canonical load-order source for RimWorld and tools such as RimSort:
+
+| Relationship | Metadata | Meaning |
+| --- | --- | --- |
+| Harmony | `modDependencies` and `loadAfter` | Hard dependency and explicit sort edge. Both are kept because mod managers may be configured not to infer load order from dependency declarations. |
+| Pick Up And Haul | `loadAfter` only | Optional integration: sort after it when installed, without making it required. |
+| Stack Gap | `incompatibleWith` | Report a conflict instead of trying to solve incompatible storage-capacity patches through ordering. |
+| Combat Extended | No dependency or ordering rule | CE ammunition works as ordinary storable items; no CE assembly or patch-order dependency exists. |
+
+`About/PublishedFileId.txt` binds every packaged copy to Workshop item `3775097866`. Community database rules are not required for these author-supplied relationships; they are a separate source used by mod managers to supplement third-party metadata.
 
 #### Scope resolution and persistence
 
@@ -317,12 +332,27 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | 用正常搬运工作准确移走超量物品并整理类似堆栈。 |
 | `Source/Window_StorageQuotas.cs` | 原版“存储”标签中的配额设置窗口。 |
 | `Source/packages.lock.json` | 锁定用于编译的引用包，保证可复现构建。 |
+| `About/About.xml` | 包标识、支持的游戏版本、依赖、加载顺序和冲突声明。 |
+| `About/PublishedFileId.txt` | 用于更新与模组管理器识别的永久 Steam 创意工坊 ID。 |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | 注册自定义搬运 `WorkGiverDef`。 |
 | `Languages/` | 英文和简体中文 Keyed 翻译。 |
 | `WorkshopDescription.bbcode` | Steam 创意工坊玩家向简介的规范源文件。 |
 | `.github/workflows/build-release.yml` | 锁定依赖的 CI 构建、安装包与滚动预发布流程。 |
 
 本模组刻意不引入自定义 `JobDriver`、`GameComponent`、`MapComponent` 或全局 `ModSettings`。所有搬运都使用原版 `JobDefOf.HaulToCell`，数据则跟随对应的原版 `StorageSettings`。
+
+#### 依赖与自动排序
+
+`About/About.xml` 是 RimWorld 及 RimSort 等工具读取加载顺序的规范来源：
+
+| 关系 | 元数据声明 | 含义 |
+| --- | --- | --- |
+| Harmony | `modDependencies` 与 `loadAfter` | 硬依赖并建立显式排序边。两者同时保留，因为模组管理器可能被设置为不从依赖声明推断加载顺序。 |
+| Pick Up And Haul | 仅 `loadAfter` | 可选适配：安装时排在它后面，但不会把它变成必需依赖。 |
+| Stack Gap | `incompatibleWith` | 直接报告冲突，而不是试图用排序解决互不兼容的仓储容量补丁。 |
+| Combat Extended | 不声明依赖或顺序 | CE 弹药按普通可存储物品处理，不依赖 CE 程序集或补丁顺序。 |
+
+`About/PublishedFileId.txt` 将所有打包副本固定关联到创意工坊项目 `3775097866`。上述作者声明不需要等待社区规则库收录；社区数据库是模组管理器用于补充第三方元数据的独立来源。
 
 #### 范围解析与存档
 
