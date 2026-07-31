@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <WorkGiverDef>
+    <defName>SGQ_MoveQuotaOverflow</defName>
+    <label>move or rebalance storage quota items</label>
+    <giverClass>StorageGroupQuotas.WorkGiver_MoveQuotaOverflow</giverClass>
+    <workType>Hauling</workType>
+    <verb>move or rebalance quota items</verb>
+    <gerund>moving or rebalancing quota items</gerund>
+    <priorityInType>20</priorityInType>
+    <requiredCapacities>
+      <li>Manipulation</li>
+    </requiredCapacities>
+  </WorkGiverDef>
+</Defs>

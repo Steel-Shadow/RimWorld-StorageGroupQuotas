@@ -1,0 +1,103 @@
+name: Build and publish rolling release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MOD_NAME: StorageGroupQuotas
+  RELEASE_TAG: continuous
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: Source/packages.lock.json
+
+      - name: Restore locked dependencies
+        run: dotnet restore Source/StorageGroupQuotas.csproj --locked-mode
+
+      - name: Build release DLL
+        run: >-
+          dotnet build Source/StorageGroupQuotas.csproj
+          --configuration Release
+          --no-restore
+          -p:ContinuousIntegrationBuild=true
+          -p:OutputPath=${{ github.workspace }}/artifacts/bin/
+
+      - name: Create installable mod archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          stage="$RUNNER_TEMP/$MOD_NAME"
+          mkdir -p "$stage/1.6/Assemblies"
+          cp "artifacts/bin/$MOD_NAME.dll" "$stage/1.6/Assemblies/"
+          cp -R About Defs Languages "$stage/"
+          cp README.md "$stage/"
+
+          (
+            cd "$RUNNER_TEMP"
+            zip -qr "$GITHUB_WORKSPACE/$MOD_NAME.zip" "$MOD_NAME"
+          )
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: StorageGroupQuotas-${{ github.sha }}
+          path: StorageGroupQuotas.zip
+          if-no-files-found: error
+          archive: false
+
+      - name: Publish rolling prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          notes="$RUNNER_TEMP/release-notes.md"
+          cat > "$notes" <<EOF
+          Automated build from the latest `main` branch.
+
+          Commit: [`${GITHUB_SHA}`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})
+
+          Download `StorageGroupQuotas.zip`, extract it into RimWorld's `Mods` directory, and enable Harmony before this mod.
+          EOF
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh api \
+              --method PATCH \
+              "repos/$GITHUB_REPOSITORY/git/refs/tags/$RELEASE_TAG" \
+              -f sha="$GITHUB_SHA" \
+              -F force=true
+            gh release upload "$RELEASE_TAG" "$MOD_NAME.zip" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --title "Continuous build" \
+              --notes-file "$notes" \
+              --prerelease
+          else
+            gh release create "$RELEASE_TAG" "$MOD_NAME.zip" \
+              --target "$GITHUB_SHA" \
+              --title "Continuous build" \
+              --notes-file "$notes" \
+              --prerelease
+          fi

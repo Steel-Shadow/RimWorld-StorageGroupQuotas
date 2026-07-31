@@ -1,0 +1,12 @@
+Source/bin/
+Source/obj/
+.workshop-stage/
+1.6/Assemblies/
+artifacts/
+dist/
+*.dll
+*.pdb
+*.zip
+*.nupkg
+*.user
+*.suo

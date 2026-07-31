@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <SGQ_QuotaButton>存储配额</SGQ_QuotaButton>
+  <SGQ_WindowTitle>存储配额：{0}</SGQ_WindowTitle>
+  <SGQ_Mode>限制模式</SGQ_Mode>
+  <SGQ_ModeTotal>整个仓库数量</SGQ_ModeTotal>
+  <SGQ_ModeSimilar>类似堆栈 ×N</SGQ_ModeSimilar>
+  <SGQ_DescriptionTotal>配额表示整个原版“存储组”内某种物品允许保留的总数量；超出部分会被搬出该组。</SGQ_DescriptionTotal>
+  <SGQ_DescriptionSimilar>配额表示单堆最大数量；组内最多保留 {0} 个相互独立的同类堆栈，总量超出“每堆 ×N”的部分会被搬出。</SGQ_DescriptionSimilar>
+  <SGQ_DefaultTotal>默认总数量</SGQ_DefaultTotal>
+  <SGQ_DefaultPerStack>默认每堆数量</SGQ_DefaultPerStack>
+  <SGQ_SimilarCount>类似堆栈 ×</SGQ_SimilarCount>
+  <SGQ_Unlimited>不限</SGQ_Unlimited>
+  <SGQ_Search>搜索物品……</SGQ_Search>
+  <SGQ_Item>物品</SGQ_Item>
+  <SGQ_CurrentAndStacks>现有 / 堆数</SGQ_CurrentAndStacks>
+  <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
+  <SGQ_TotalQuota>总数量上限</SGQ_TotalQuota>
+  <SGQ_PerStackQuota>每堆上限</SGQ_PerStackQuota>
+  <SGQ_Inherit>使用默认值</SGQ_Inherit>
+  <SGQ_Override>单独设置</SGQ_Override>
+  <SGQ_RemoveOverride>恢复默认值</SGQ_RemoveOverride>
+  <SGQ_OverflowStatus>等待移走的超量物品：{0}</SGQ_OverflowStatus>
+  <SGQ_RebalanceStatus>等待拆分或合并的堆栈：{0}</SGQ_RebalanceStatus>
+  <SGQ_NoOverflow>该存储组当前没有超量物品。</SGQ_NoOverflow>
+  <SGQ_ZeroHelpTotal>0 表示不限；单项设置会覆盖默认配额。</SGQ_ZeroHelpTotal>
+  <SGQ_ZeroHelpSimilar>0 使用物品当前堆叠上限；实际每堆数量不会超过该上限；总容量＝每堆数量 × N。</SGQ_ZeroHelpSimilar>
+  <SGQ_NativeStackLimit>原版上限</SGQ_NativeStackLimit>
+</LanguageData>

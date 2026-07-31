@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <SGQ_QuotaButton>Quotas</SGQ_QuotaButton>
+  <SGQ_WindowTitle>Storage quota: {0}</SGQ_WindowTitle>
+  <SGQ_Mode>Mode</SGQ_Mode>
+  <SGQ_ModeTotal>Entire storage count</SGQ_ModeTotal>
+  <SGQ_ModeSimilar>Similar stacks ×N</SGQ_ModeSimilar>
+  <SGQ_DescriptionTotal>The quota is the total number of each item allowed across this entire vanilla storage group. Excess is hauled outside the group.</SGQ_DescriptionTotal>
+  <SGQ_DescriptionSimilar>The quota is the maximum amount in one stack. The group keeps at most {0} independent similar stacks; excess total quantity is hauled outside.</SGQ_DescriptionSimilar>
+  <SGQ_DefaultTotal>Default total quota</SGQ_DefaultTotal>
+  <SGQ_DefaultPerStack>Default per-stack quota</SGQ_DefaultPerStack>
+  <SGQ_SimilarCount>Stack count ×</SGQ_SimilarCount>
+  <SGQ_Unlimited>Unlimited</SGQ_Unlimited>
+  <SGQ_Search>Search items...</SGQ_Search>
+  <SGQ_Item>Item</SGQ_Item>
+  <SGQ_CurrentAndStacks>Current / stacks</SGQ_CurrentAndStacks>
+  <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
+  <SGQ_TotalQuota>Total quota</SGQ_TotalQuota>
+  <SGQ_PerStackQuota>Per-stack quota</SGQ_PerStackQuota>
+  <SGQ_Inherit>Default</SGQ_Inherit>
+  <SGQ_Override>Override</SGQ_Override>
+  <SGQ_RemoveOverride>Use default</SGQ_RemoveOverride>
+  <SGQ_OverflowStatus>Overflow waiting to be moved: {0}</SGQ_OverflowStatus>
+  <SGQ_RebalanceStatus>Stacks waiting to be split or merged: {0}</SGQ_RebalanceStatus>
+  <SGQ_NoOverflow>No overflow in this storage group.</SGQ_NoOverflow>
+  <SGQ_ZeroHelpTotal>0 means unlimited. Per-item values override the default.</SGQ_ZeroHelpTotal>
+  <SGQ_ZeroHelpSimilar>0 uses the current native stack limit. Effective per-stack quota cannot exceed that limit; total = per stack × N.</SGQ_ZeroHelpSimilar>
+  <SGQ_NativeStackLimit>Native limit</SGQ_NativeStackLimit>
+</LanguageData>
