@@ -30,7 +30,7 @@ Use Entire storage count when only the total matters, or Similar stacks ×N to k
 
 Requires Harmony. Combat Extended ammunition is supported without a hard dependency. Includes optional Pick Up And Haul destination-capacity support. Incompatible with Stack Gap.
 
-为整个原版存储组设置按物品分别计算的数量上限；链接货架共享同一份配额。
+为整个原版存储组设置按物品分别计算的数量上限；链接的物品架共享同一份配额。
 
 配额窗口使用分类树。未设置的物品和子分类会继承最近的已设置父级，少数例外物品仍可保留单独设置。分类值由每种后代物品分别使用，并不是整个分类共用的总额。列表会随原版存储筛选实时刷新，并共享原版分类折叠状态。
 

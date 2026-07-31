@@ -33,11 +33,10 @@ With some hauling or reservation optimization setups, one physical stack may be 
 
 ### Quick start
 
-1. Select a shelf, storage building, or stockpile.
-2. Open the vanilla **Storage** tab and click **Quotas** in the upper-right corner.
+1. Select a shelf or stockpile.
+2. Click **Quotas**.
 3. Choose **Entire storage count** or **Similar stacks ×N**.
-4. Set the global default used by items without a more specific value.
-5. Expand the category tree. Click **Inherited** on a category or item to give it its own value; **Use inherited** removes that override.
+4. Expand the category tree and set quotas for categories or individual items. Click **Inherited** to give an entry its own value; **Use inherited** removes that override. The global default at the top is optional and provides the fallback for entries without a more specific value.
 
 The window shows the current quantity and physical stack count for every listed item, plus any overflow or stack layout waiting for hauling work. Its item tree refreshes while open, and its category folding is shared with the vanilla Storage tree. Items that vanilla no longer allows remain visible in gray only when they still have an item override or are physically present in the group.
 
@@ -272,13 +271,12 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 ### 快速使用
 
-1. 选择货架、仓储建筑或仓储区。
-2. 打开原版“存储”标签，点击右上角“存储配额”。
+1. 选择物品架或储存区。
+2. 点击“存储配额”。
 3. 选择“整个仓库数量”或“类似堆栈 ×N”。
-4. 设置全局默认值，供没有更具体设置的物品使用。
-5. 展开分类树；点击分类或物品的“继承值”即可建立单独设置，“恢复继承”会移除该覆盖值。
+4. 展开分类树，为分类或单个物品设置配额；点击分类或物品的“继承值”即可建立单独设置，“恢复继承”会移除该覆盖值。窗口顶部的全局默认值是可选的继承基准。
 
-窗口会显示每种物品的现有数量和实际堆数，并提示仍在等待搬运处理的超量物品或堆栈布局。窗口保持打开时会实时刷新物品树，分类折叠状态与原版“存储”树共用。原版已经禁止、但仍有单项覆盖值或仍实际存放在组内的物品会以灰色保留，方便继续管理。
+窗口会显示每种物品的现有数量和实际堆数，并提示仍在等待搬运处理的超量物品或堆栈布局。窗口保持打开时会实时刷新物品树，分类折叠状态与原版物品筛选树共用。原版已经禁止、但仍有单项覆盖值或仍实际存放在组内的物品会以灰色保留，方便继续管理。
 
 ### 分类继承规则
 
@@ -302,7 +300,7 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 ### 游戏里的实际行为
 
-- 同一个原版 `StorageGroup` 中的链接货架共享一份配额。
+- 同一个原版 `StorageGroup` 中链接的物品架共享一份配额。
 - 每个物品定义分别统计数量。
 - 新的入库搬运不会超过该组当前的剩余容量。
 - 已有超量物品通过正常搬运工作移走，不会被删除或瞬移。
@@ -337,9 +335,9 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 
 ### 玩家常见问题
 
-**每个货架会单独计算吗？**
+**每个物品架会单独计算吗？**
 
-不会。链接货架共享原版存储组的配额；没有链接的货架或仓储区使用自己的局部存储范围。
+不会。链接的物品架共享原版存储组的配额；未链接的物品架或储存区使用自己的局部存储范围。
 
 **“类似堆栈 ×N”一定会凑齐 N 堆吗？**
 
@@ -395,7 +393,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 
 #### 范围解析与存档
 
-`QuotaUtility.ScopeAt`、`ScopeForSettings` 和 `ScopeForThing` 会在存在 `SlotGroup.StorageGroup` 时将局部 `SlotGroup` 解析为该存储组，否则使用局部范围。这就是链接货架共享配额的代码路径。
+`QuotaUtility.ScopeAt`、`ScopeForSettings` 和 `ScopeForThing` 会在存在 `SlotGroup.StorageGroup` 时将局部 `SlotGroup` 解析为该存储组，否则使用局部范围。这就是链接的物品架共享配额的代码路径。
 
 运行时，`QuotaDataStore` 使用 `ConditionalWeakTable<StorageSettings, Holder>`。`Patch_StorageSettings_ExposeData` 通过 `Scribe_Deep` 把 `StorageQuotaData` 写入 `storageGroupQuotas` 节点。物品覆盖值继续保存在原有 `upperByDefName` 字典中，分类覆盖值使用可缺省的 `upperByCategoryDefName` 字典，因此分类继承功能加入前的存档无需迁移即可载入。总数量模式下完全未启用的数据不会进入存档；`Patch_StorageSettings_CopyFrom` 会在复制原版存储设置时克隆两种覆盖值。
 

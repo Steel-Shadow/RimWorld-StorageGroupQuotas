@@ -25,7 +25,7 @@ With some hauling or reservation optimization mods, one physical stack may be re
 • In Similar stacks mode, haulers first try to split or consolidate stacks inside the group. Anything that cannot fit the selected layout is moved outside.
 
 [h2]How to use[/h2]
-Select a shelf or stockpile → open [b]Storage[/b] → click [b]Quotas[/b] → choose a mode and set the global default. Expand the tree to set a category or individual item; unset children inherit the nearest configured parent.
+Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set quotas for categories or individual items in the tree. The global default at the top is optional; unset children inherit the nearest configured parent.
 
 [b]Important:[/b] a category value is calculated separately for every descendant item; it is not one shared total for the whole category. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 uses that item's current stack limit. The mod does not change ThingDef.stackLimit globally.
 
@@ -46,7 +46,7 @@ Select a shelf or stockpile → open [b]Storage[/b] → click [b]Quotas[/b] → 
 
 [h1]存得刚刚好，也让小人真正取用得到[/h1]
 
-Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分别计算的数量上限[/b]。链接在一起的货架会作为一个整体统计。
+Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分别计算的数量上限[/b]。链接在一起的物品架会作为一个整体统计。
 
 它尤其适合弹药库：与其让所有小人等待同一个可能已被预留的大堆，不如保留多个真实堆栈，提供彼此独立的取用目标。
 
@@ -71,7 +71,7 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 • 在“类似堆栈 ×N”模式中，搬运工会先尝试在组内拆分或归并；无法纳入所选布局的部分会移到组外。
 
 [h2]使用方法[/h2]
-选择货架或仓储区 → 打开[b]存储[/b]标签 → 点击[b]存储配额[/b] → 选择模式并设置全局默认值。展开分类树后可设置分类或单个物品；未设置的子项会继承最近的父级。
+选择物品架或储存区 → 点击[b]存储配额[/b] → 选择模式 → 在分类树中为分类或单个物品设置配额。窗口顶部的全局默认值是可选的继承基准；未设置的子项会继承最近的父级。
 
 [b]请注意：[/b]分类值会由每种后代物品分别计算，并不是整个分类共用一个总额。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，0 表示使用该物品当前的堆叠上限。本模组不会全局修改 ThingDef.stackLimit。
 
