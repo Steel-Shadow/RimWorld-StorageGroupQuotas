@@ -25,6 +25,8 @@ RimWorld 1.6 · Requires Harmony · Package ID: `steelshadow.storagegroupquotas`
 
 Quotas are calculated separately for every item type. Setting a quota of 100 does **not** mean 100 mixed items across the warehouse; it means up to 100 of each item that uses that value.
 
+New quota data starts **Similar stacks ×N** at `N = 1`. Existing storage settings keep their previously saved value.
+
 #### Why keep several stacks?
 
 With some hauling or reservation optimization setups, one physical stack may be reserved by only one pawn or job at a time. Multiple physical stacks provide separate reservation targets and can reduce queues when several weapons reload or are resupplied together.
@@ -37,7 +39,7 @@ With some hauling or reservation optimization setups, one physical stack may be 
 4. Set the global default used by items without a more specific value.
 5. Expand the category tree. Click **Inherited** on a category or item to give it its own value; **Use inherited** removes that override.
 
-The window shows the current quantity and physical stack count for every listed item, plus any overflow or stack layout waiting for hauling work.
+The window shows the current quantity and physical stack count for every listed item, plus any overflow or stack layout waiting for hauling work. Its item tree refreshes while open, and its category folding is shared with the vanilla Storage tree. Items that vanilla no longer allows remain visible in gray only when they still have an item override or are physically present in the group.
 
 ### How category inheritance works
 
@@ -123,7 +125,7 @@ Yes. Capacity is based on currently spawned contents; several already-created jo
 | Path | Responsibility |
 | --- | --- |
 | `Source/StorageQuotaData.cs` | Saved mode, global default, stack count, category overrides, and per-`ThingDef` overrides. |
-| `Source/QuotaTreeModel.cs` | Pruned vanilla-style category tree, local expansion state, and hierarchical search results. |
+| `Source/QuotaTreeModel.cs` | Pruned vanilla-style category tree, shared mask-8 expansion state, and hierarchical search results. |
 | `Source/QuotaDataStore.cs` | Runtime attachment of quota data to vanilla `StorageSettings`. |
 | `Source/QuotaUtility.cs` | Scope resolution, counting, effective capacities, overflow discovery, and scan caching. |
 | `Source/HarmonyPatches.cs` | Vanilla storage/UI patches and optional Pick Up And Haul integration. |
@@ -157,6 +159,8 @@ The mod deliberately has no custom `JobDriver`, `GameComponent`, `MapComponent`,
 `QuotaUtility.ScopeAt`, `ScopeForSettings`, and `ScopeForThing` resolve a local `SlotGroup` to `SlotGroup.StorageGroup` when one exists; otherwise they use the local slot group. This is the code path that makes linked shelves share a quota.
 
 At runtime, `QuotaDataStore` uses a `ConditionalWeakTable<StorageSettings, Holder>`. `Patch_StorageSettings_ExposeData` deep-scribes the attached `StorageQuotaData` under the `storageGroupQuotas` node. Item overrides remain in the original `upperByDefName` dictionary; category overrides use the optional `upperByCategoryDefName` dictionary, so saves made before category inheritance load without migration. Inactive data in TotalCount mode is omitted from saves. `Patch_StorageSettings_CopyFrom` clones both override dictionaries when vanilla storage settings are copied.
+
+New `StorageQuotaData` instances initialize `SimilarStackCount` to 1. The Scribe fallback intentionally remains 2 because old versions omitted the field whenever it equaled the former default; this preserves existing storage behavior, while new value-1 data is written explicitly and reloads as 1.
 
 #### Capacity formulas
 
@@ -215,7 +219,7 @@ The registered work giver belongs to `Hauling`, has `priorityInType` 20, require
 - Similar-stack budgets are per `ThingDef`; quality/material/hit-point variants do not each receive N stacks.
 - Internal rebalancing needs compatible stacks or free valid cells. Otherwise layout-only excess may be moved outside.
 - The floor fallback searches only within radius 40 and does not guarantee roofing, temperature control, or weather protection.
-- The quota window builds its item list when opened from the current storage filter; changing that filter while the window remains open does not rebuild the list.
+- The quota window polls the current vanilla allowed-def set once per rendered frame and rebuilds only when the effective candidate set changes. Disallowed item overrides and items still physically present remain listed in gray so they can be managed.
 - A multi-category `ThingDef` is shown only under `FirstThingCategory`; secondary category memberships do not participate in quota inheritance.
 - Stack Gap data is not migrated, and both mods must not run together.
 - There is currently no automated test project.
@@ -260,6 +264,8 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 配额会对每种物品分别计算。设置 100 并不是“整个仓库里各种物品合计 100 件”，而是每个使用该值的物品各自最多 100 件。
 
+新建配额数据的**类似堆栈 ×N** 从 `N = 1` 开始；已有存储设置会保留先前保存的数值。
+
 #### 为什么要保留多堆？
 
 在部分搬运或预留优化环境下，一堆实体物品同时可能只能被一个 Pawn 或任务预留。多个真实堆栈能提供彼此独立的预留目标，减少多件武器同时换弹或补给时的排队。
@@ -272,7 +278,7 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 4. 设置全局默认值，供没有更具体设置的物品使用。
 5. 展开分类树；点击分类或物品的“继承值”即可建立单独设置，“恢复继承”会移除该覆盖值。
 
-窗口会显示每种物品的现有数量和实际堆数，并提示仍在等待搬运处理的超量物品或堆栈布局。
+窗口会显示每种物品的现有数量和实际堆数，并提示仍在等待搬运处理的超量物品或堆栈布局。窗口保持打开时会实时刷新物品树，分类折叠状态与原版“存储”树共用。原版已经禁止、但仍有单项覆盖值或仍实际存放在组内的物品会以灰色保留，方便继续管理。
 
 ### 分类继承规则
 
@@ -358,7 +364,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | 路径 | 职责 |
 | --- | --- |
 | `Source/StorageQuotaData.cs` | 保存模式、全局默认值、堆数、分类覆盖值和按 `ThingDef` 的单项覆盖值。 |
-| `Source/QuotaTreeModel.cs` | 裁剪后的原版风格分类树、本地展开状态与分层搜索结果。 |
+| `Source/QuotaTreeModel.cs` | 裁剪后的原版风格分类树、共享的 mask-8 展开状态与分层搜索结果。 |
 | `Source/QuotaDataStore.cs` | 在运行时把配额数据附着到原版 `StorageSettings`。 |
 | `Source/QuotaUtility.cs` | 范围解析、计数、有效容量、超量发现和扫描缓存。 |
 | `Source/HarmonyPatches.cs` | 原版仓储／界面补丁及 Pick Up And Haul 可选适配。 |
@@ -392,6 +398,8 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 `QuotaUtility.ScopeAt`、`ScopeForSettings` 和 `ScopeForThing` 会在存在 `SlotGroup.StorageGroup` 时将局部 `SlotGroup` 解析为该存储组，否则使用局部范围。这就是链接货架共享配额的代码路径。
 
 运行时，`QuotaDataStore` 使用 `ConditionalWeakTable<StorageSettings, Holder>`。`Patch_StorageSettings_ExposeData` 通过 `Scribe_Deep` 把 `StorageQuotaData` 写入 `storageGroupQuotas` 节点。物品覆盖值继续保存在原有 `upperByDefName` 字典中，分类覆盖值使用可缺省的 `upperByCategoryDefName` 字典，因此分类继承功能加入前的存档无需迁移即可载入。总数量模式下完全未启用的数据不会进入存档；`Patch_StorageSettings_CopyFrom` 会在复制原版存储设置时克隆两种覆盖值。
+
+新建 `StorageQuotaData` 会把 `SimilarStackCount` 初始化为 1。Scribe 的读取后备值刻意保留为 2，因为旧版本在数值等于旧默认值时通常不会写入该字段；这样已有存储不会悄然改变，而新数据的数值 1 会被明确写入并在重新载入后保持为 1。
 
 #### 容量公式
 
@@ -450,7 +458,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 - 类似堆栈预算按 `ThingDef` 计算；不同品质、材质或耐久变体不会各自获得 N 个堆位。
 - 组内整理需要兼容堆或合法空格，否则仅布局超额的部分也可能被搬出。
 - 地面后备只搜索半径 40，不保证屋顶、温控或天气保护。
-- 配额窗口在打开时根据当前存储过滤器构建物品列表；保持窗口开启并修改过滤器不会动态重建列表。
+- 配额窗口每个渲染帧检查一次原版允许物品集合，仅在有效候选集合变化时重建；已有单项覆盖值或仍实际存放的禁用物品会以灰色保留，便于继续管理。
 - 同时属于多个分类的 `ThingDef` 只显示在 `FirstThingCategory` 下；其他分类成员关系不参与配额继承。
 - Stack Gap 数据不会迁移，两个模组不能同时运行。
 - 当前没有自动化测试项目。

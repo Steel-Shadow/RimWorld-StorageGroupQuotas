@@ -32,4 +32,5 @@
   <SGQ_CategoryQuotaTooltip>分类值会由每种后代物品分别继承，并不是整个分类共用的总数。</SGQ_CategoryQuotaTooltip>
   <SGQ_ExpandCategory>展开{0}</SGQ_ExpandCategory>
   <SGQ_CollapseCategory>折叠{0}</SGQ_CollapseCategory>
+  <SGQ_RetainedDisallowedItem>原版存储筛选已不允许该物品；由于它仍有单项配额或仍存放在该组内，因此继续显示。</SGQ_RetainedDisallowedItem>
 </LanguageData>

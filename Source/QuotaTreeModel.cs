@@ -29,6 +29,11 @@ namespace StorageGroupQuotas
 
         internal IEnumerable<ThingCategoryDef> Categories => includedCategories;
 
+        internal bool ContainsCategory(ThingCategoryDef category)
+        {
+            return category != null && includedCategories.Contains(category);
+        }
+
         internal QuotaTreeModel(
             IEnumerable<ThingDef> defs,
             IEnumerable<ThingCategoryDef> forcedCategories)

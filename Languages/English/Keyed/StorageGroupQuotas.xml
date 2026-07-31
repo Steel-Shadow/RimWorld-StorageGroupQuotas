@@ -32,4 +32,5 @@
   <SGQ_CategoryQuotaTooltip>A category value is inherited separately by each descendant item; it is not one shared total for the category.</SGQ_CategoryQuotaTooltip>
   <SGQ_ExpandCategory>Expand {0}</SGQ_ExpandCategory>
   <SGQ_CollapseCategory>Collapse {0}</SGQ_CollapseCategory>
+  <SGQ_RetainedDisallowedItem>This item is no longer allowed by the vanilla storage filter. It remains listed because it has a quota override or is still stored in this group.</SGQ_RetainedDisallowedItem>
 </LanguageData>

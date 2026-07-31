@@ -10,17 +10,25 @@ namespace StorageGroupQuotas
     public sealed class Window_StorageQuotas : Window
     {
         private const int MaxQuota = 1000000000;
+        private const int StorageTreeOpenMask = 8;
         private readonly StorageSettings settings;
         private readonly StorageQuotaData data;
-        private readonly List<ThingDef> defs;
-        private readonly QuotaTreeModel treeModel;
+        private readonly List<ThingDef> defs = new List<ThingDef>();
+        private readonly HashSet<ThingDef> listedDefs = new HashSet<ThingDef>();
+        private readonly HashSet<ThingDef> candidateDefs = new HashSet<ThingDef>();
+        private readonly HashSet<ThingCategoryDef> listedOverrideCategories =
+            new HashSet<ThingCategoryDef>();
+        private readonly HashSet<ThingCategoryDef> candidateOverrideCategories =
+            new HashSet<ThingCategoryDef>();
         private readonly Dictionary<string, string> numberBuffers = new Dictionary<string, string>();
         private readonly HashSet<ThingCategoryDef> expandedCategories = new HashSet<ThingCategoryDef>();
         private readonly List<QuotaTreeModel.Row> visibleRows = new List<QuotaTreeModel.Row>();
+        private QuotaTreeModel treeModel;
         private Vector2 scrollPosition;
         private string search = string.Empty;
         private string defaultBuffer;
         private string similarStackCountBuffer;
+        private int lastTreeRefreshFrame = -1;
 
         public override Vector2 InitialSize => new Vector2(780f, 680f);
 
@@ -33,71 +41,14 @@ namespace StorageGroupQuotas
             doCloseX = true;
             draggable = true;
             absorbInputAroundWindow = false;
-
-            HashSet<ThingDef> candidates = new HashSet<ThingDef>(
-                DefDatabase<ThingDef>.AllDefsListForReading.Where(def =>
-                    def.EverStorable(false) && settings.filter.Allows(def)));
-
-            foreach (string defName in data.OverriddenDefNames.ToList())
-            {
-                ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
-                if (def != null)
-                {
-                    candidates.Add(def);
-                }
-            }
-
-            ISlotGroup scope = QuotaUtility.ScopeForSettings(settings);
-            if (scope != null)
-            {
-                foreach (Thing thing in scope.HeldThings)
-                {
-                    if (thing?.def != null)
-                    {
-                        candidates.Add(thing.def);
-                    }
-                }
-            }
-
-            defs = candidates.OrderBy(def => def.LabelCap.ToString()).ToList();
-
-            List<ThingCategoryDef> overriddenCategories = new List<ThingCategoryDef>();
-            foreach (string defName in data.OverriddenCategoryDefNames.ToList())
-            {
-                ThingCategoryDef category = DefDatabase<ThingCategoryDef>.GetNamedSilentFail(defName);
-                if (category != null)
-                {
-                    overriddenCategories.Add(category);
-                }
-            }
-
-            treeModel = new QuotaTreeModel(defs, overriddenCategories);
-            foreach (ThingCategoryDef category in treeModel.Categories)
-            {
-                if (category.treeNode?.IsOpen(8) == true)
-                {
-                    expandedCategories.Add(category);
-                }
-
-                if (data.HasOverride(category))
-                {
-                    ExpandCategoryPath(category);
-                }
-            }
-
-            foreach (ThingDef def in defs.Where(data.HasOverride))
-            {
-                ThingCategoryDef category = def.FirstThingCategory;
-                if (category != null)
-                {
-                    ExpandCategoryPath(category);
-                }
-            }
+            RefreshTree(QuotaUtility.ScopeForSettings(settings));
         }
 
         public override void DoWindowContents(Rect inRect)
         {
             ISlotGroup scope = QuotaUtility.ScopeForSettings(settings);
+            RefreshTree(scope);
+            SynchronizeExpandedCategories();
             string scopeLabel = scope == null
                 ? settings.owner?.ToString() ?? "Storage"
                 : SlotGroup.GetGroupLabel(scope);
@@ -173,7 +124,12 @@ namespace StorageGroupQuotas
                 : "SGQ_ZeroHelpSimilar".Translate();
             Widgets.Label(new Rect(0f, 154f, inRect.width, 25f), zeroHelp);
 
+            string oldSearch = search;
             search = Widgets.TextField(new Rect(0f, 183f, inRect.width, 30f), search);
+            if (!string.Equals(oldSearch, search, StringComparison.Ordinal))
+            {
+                scrollPosition.y = 0f;
+            }
 
             float tableTop = 221f;
             Widgets.DrawMenuSection(new Rect(0f, tableTop, inRect.width, inRect.height - tableTop - 38f));
@@ -236,14 +192,7 @@ namespace StorageGroupQuotas
                         }
                         else if (toggleClicked)
                         {
-                            if (expanded)
-                            {
-                                expandedCategories.Remove(category);
-                            }
-                            else
-                            {
-                                expandedCategories.Add(category);
-                            }
+                            SetCategoryExpanded(category, !expanded);
                         }
 
                         if (!searchExpanded)
@@ -273,8 +222,15 @@ namespace StorageGroupQuotas
                 else
                 {
                     ThingDef def = treeRow.Thing;
+                    bool allowedByFilter = settings.filter.Allows(def);
                     float iconX = 8f + indent;
                     Rect iconRect = new Rect(iconX, row.y + 3f, 26f, 26f);
+                    Color oldColor = GUI.color;
+                    if (!allowedByFilter)
+                    {
+                        GUI.color = Color.gray;
+                    }
+
                     Widgets.DefIcon(iconRect, def);
                     string thingLabel = def.LabelCap.ToString();
                     Rect thingLabelRect = new Rect(
@@ -283,7 +239,12 @@ namespace StorageGroupQuotas
                         Math.Max(10f, 304f - iconX - 32f),
                         25f);
                     Widgets.LabelEllipses(thingLabelRect, thingLabel);
-                    TooltipHandler.TipRegion(thingLabelRect, thingLabel);
+                    GUI.color = oldColor;
+                    TooltipHandler.TipRegion(
+                        thingLabelRect,
+                        allowedByFilter
+                            ? thingLabel
+                            : thingLabel + "\n\n" + "SGQ_RetainedDisallowedItem".Translate());
                     counts.TryGetValue(def, out int current);
                     stackCounts.TryGetValue(def, out int currentStacks);
                     Widgets.Label(
@@ -353,8 +314,118 @@ namespace StorageGroupQuotas
                 category != null && category != ThingCategoryDefOf.Root && depth < 128;
                 depth++)
             {
-                expandedCategories.Add(category);
+                SetCategoryExpanded(category, true);
                 category = category.parent;
+            }
+        }
+
+        private void RefreshTree(ISlotGroup scope)
+        {
+            if (treeModel != null && lastTreeRefreshFrame == Time.frameCount)
+            {
+                return;
+            }
+
+            lastTreeRefreshFrame = Time.frameCount;
+            candidateDefs.Clear();
+            foreach (ThingDef def in settings.filter.AllowedThingDefs)
+            {
+                if (def != null && def.EverStorable(false))
+                {
+                    candidateDefs.Add(def);
+                }
+            }
+
+            foreach (string defName in data.OverriddenDefNames)
+            {
+                ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
+                if (def != null)
+                {
+                    candidateDefs.Add(def);
+                }
+            }
+
+            if (scope != null)
+            {
+                foreach (Thing thing in scope.HeldThings)
+                {
+                    if (thing?.def != null)
+                    {
+                        candidateDefs.Add(thing.def);
+                    }
+                }
+            }
+
+            candidateOverrideCategories.Clear();
+            foreach (string defName in data.OverriddenCategoryDefNames)
+            {
+                ThingCategoryDef category = DefDatabase<ThingCategoryDef>.GetNamedSilentFail(defName);
+                if (category != null)
+                {
+                    candidateOverrideCategories.Add(category);
+                }
+            }
+
+            if (treeModel != null
+                && listedDefs.SetEquals(candidateDefs)
+                && listedOverrideCategories.SetEquals(candidateOverrideCategories))
+            {
+                return;
+            }
+
+            listedDefs.Clear();
+            listedDefs.UnionWith(candidateDefs);
+            listedOverrideCategories.Clear();
+            listedOverrideCategories.UnionWith(candidateOverrideCategories);
+
+            defs.Clear();
+            defs.AddRange(candidateDefs.OrderBy(def => def.LabelCap.ToString()));
+            treeModel = new QuotaTreeModel(defs, listedOverrideCategories);
+            SynchronizeExpandedCategories();
+        }
+
+        private void SynchronizeExpandedCategories()
+        {
+            if (treeModel == null)
+            {
+                expandedCategories.Clear();
+                return;
+            }
+
+            expandedCategories.RemoveWhere(category => !treeModel.ContainsCategory(category));
+            foreach (ThingCategoryDef category in treeModel.Categories)
+            {
+                if (category?.treeNode == null)
+                {
+                    continue;
+                }
+
+                if (category.treeNode.IsOpen(StorageTreeOpenMask))
+                {
+                    expandedCategories.Add(category);
+                }
+                else
+                {
+                    expandedCategories.Remove(category);
+                }
+            }
+        }
+
+        private void SetCategoryExpanded(ThingCategoryDef category, bool expanded)
+        {
+            if (category == null)
+            {
+                return;
+            }
+
+            category.treeNode?.SetOpen(StorageTreeOpenMask, expanded);
+            if (expanded)
+            {
+                expandedCategories.Add(category);
+            }
+            else
+            {
+                expandedCategories.Remove(category);
             }
         }
 

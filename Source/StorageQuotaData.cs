@@ -15,7 +15,7 @@ namespace StorageGroupQuotas
     {
         private int defaultUpper;
         private QuotaMode quotaMode;
-        private int similarStackCount = 2;
+        private int similarStackCount = 1;
         private Dictionary<string, int> upperByDefName = new Dictionary<string, int>();
         private Dictionary<string, int> upperByCategoryDefName = new Dictionary<string, int>();
 
@@ -192,6 +192,8 @@ namespace StorageGroupQuotas
         {
             Scribe_Values.Look(ref defaultUpper, "defaultUpper", 0);
             Scribe_Values.Look(ref quotaMode, "quotaMode", QuotaMode.TotalCount);
+            // Keep 2 as the legacy Scribe default: older saves commonly omitted the field
+            // when they used the old default. New instances start at 1 and therefore save it explicitly.
             Scribe_Values.Look(ref similarStackCount, "similarStackCount", 2);
             Scribe_Collections.Look(ref upperByDefName, "upperByDefName", LookMode.Value, LookMode.Value);
             Scribe_Collections.Look(
