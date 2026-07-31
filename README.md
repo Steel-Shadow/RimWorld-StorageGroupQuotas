@@ -74,8 +74,8 @@ A configured per-stack value never raises a stack above its current `ThingDef.st
 
 ### Installation outside Steam Workshop
 
-1. Make sure Harmony loads before this mod.
-2. Copy the repository/mod folder into RimWorld's `Mods` directory.
+1. Download `StorageGroupQuotas.zip` from the repository's rolling `continuous` prerelease and extract it into RimWorld's `Mods` directory, or build the project from source.
+2. Make sure Harmony loads before this mod.
 3. Enable **Storage Group Quotas** and keep Stack Gap disabled.
 
 Steam Workshop users only need to subscribe and enable the mod and its required Harmony dependency.
@@ -114,8 +114,11 @@ Yes. Capacity is based on currently spawned contents; several already-created jo
 | `Source/HarmonyPatches.cs` | Vanilla storage/UI patches and optional Pick Up And Haul integration. |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | Ordinary hauling jobs for exact overflow removal and similar-stack rebalancing. |
 | `Source/Window_StorageQuotas.cs` | Quota configuration window in the vanilla Storage tab. |
+| `Source/packages.lock.json` | Locked compile-time reference packages for reproducible builds. |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | Registration of the custom hauling `WorkGiverDef`. |
 | `Languages/` | English and Simplified Chinese keyed translations. |
+| `WorkshopDescription.bbcode` | Canonical player-facing Steam Workshop description. |
+| `.github/workflows/build-release.yml` | Locked CI build, installable archive, and rolling prerelease publication. |
 
 The mod deliberately has no custom `JobDriver`, `GameComponent`, `MapComponent`, or global `ModSettings`. It uses vanilla `JobDefOf.HaulToCell` jobs and stores data with the relevant vanilla `StorageSettings`.
 
@@ -186,23 +189,24 @@ The registered work giver belongs to `Hauling`, has `priorityInType` 20, require
 
 #### Build
 
-The SDK-style project targets .NET Framework 4.7.2 and references RimWorld, Unity, and Harmony assemblies with `Private=false`.
+The source-only SDK-style project targets .NET Framework 4.7.2. It uses private compile-time package references instead of paths into a local game installation:
+
+- `Krafs.Rimworld.Ref` 1.6.4871
+- `Lib.Harmony.Ref` 2.4.1
+- `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3
+
+Dependency resolution is locked by `Source/packages.lock.json`, so a local RimWorld installation is not required to compile.
 
 From the repository root:
 
 ```powershell
-dotnet build .\Source\StorageGroupQuotas.csproj -c Release
+dotnet restore .\Source\StorageGroupQuotas.csproj --locked-mode
+dotnet build .\Source\StorageGroupQuotas.csproj -c Release --no-restore
 ```
 
-The default paths target the author's Steam installation. Override them elsewhere:
+Local output is written to the ignored `1.6/Assemblies` directory. On every push to `main`, GitHub Actions restores in locked mode, builds on Ubuntu with .NET 10, creates `StorageGroupQuotas.zip`, uploads the workflow artifact, and updates the rolling prerelease tagged `continuous`.
 
-```powershell
-dotnet build .\Source\StorageGroupQuotas.csproj -c Release `
-  -p:RimWorldManagedDir="X:\RimWorld\RimWorldWin64_Data\Managed" `
-  -p:HarmonyDir="X:\Harmony\Assemblies"
-```
-
-Output is written to `1.6/Assemblies`. A clean Workshop package should contain only runtime content such as `About`, `Defs`, `Languages`, and the release DLL; preserve `About/PublishedFileId.txt` after the first upload so future uploads update the same item.
+The GitHub archive contains `About`, `Defs`, `Languages`, the release DLL, and README. A clean Workshop package should contain only runtime content such as `About`, `Defs`, `Languages`, and the release DLL; preserve `About/PublishedFileId.txt` after the first upload so future uploads update the same item.
 
 <a id="简体中文"></a>
 
@@ -272,8 +276,8 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 ### 非 Steam 创意工坊安装
 
-1. 确保 Harmony 在本模组之前加载。
-2. 将仓库／模组文件夹复制到 RimWorld 的 `Mods` 目录。
+1. 从仓库滚动更新的 `continuous` 预发布中下载 `StorageGroupQuotas.zip`，解压到 RimWorld 的 `Mods` 目录；也可以自行从源码构建。
+2. 确保 Harmony 在本模组之前加载。
 3. 启用 **Storage Group Quotas**，并保持 Stack Gap 禁用。
 
 Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony 依赖。
@@ -312,8 +316,11 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `Source/HarmonyPatches.cs` | 原版仓储／界面补丁及 Pick Up And Haul 可选适配。 |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | 用正常搬运工作准确移走超量物品并整理类似堆栈。 |
 | `Source/Window_StorageQuotas.cs` | 原版“存储”标签中的配额设置窗口。 |
+| `Source/packages.lock.json` | 锁定用于编译的引用包，保证可复现构建。 |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | 注册自定义搬运 `WorkGiverDef`。 |
 | `Languages/` | 英文和简体中文 Keyed 翻译。 |
+| `WorkshopDescription.bbcode` | Steam 创意工坊玩家向简介的规范源文件。 |
+| `.github/workflows/build-release.yml` | 锁定依赖的 CI 构建、安装包与滚动预发布流程。 |
 
 本模组刻意不引入自定义 `JobDriver`、`GameComponent`、`MapComponent` 或全局 `ModSettings`。所有搬运都使用原版 `JobDefOf.HaulToCell`，数据则跟随对应的原版 `StorageSettings`。
 
@@ -384,20 +391,21 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 
 #### 构建
 
-SDK 风格项目以 .NET Framework 4.7.2 为目标，引用 RimWorld、Unity 和 Harmony 程序集，并将这些引用设为 `Private=false`。
+该源码仓库使用 SDK 风格项目，目标为 .NET Framework 4.7.2。编译引用来自私有的包依赖，不再依赖本机游戏安装路径：
+
+- `Krafs.Rimworld.Ref` 1.6.4871
+- `Lib.Harmony.Ref` 2.4.1
+- `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3
+
+`Source/packages.lock.json` 会锁定依赖解析，因此编译时不需要在本机安装 RimWorld。
 
 在仓库根目录运行：
 
 ```powershell
-dotnet build .\Source\StorageGroupQuotas.csproj -c Release
+dotnet restore .\Source\StorageGroupQuotas.csproj --locked-mode
+dotnet build .\Source\StorageGroupQuotas.csproj -c Release --no-restore
 ```
 
-默认路径指向作者本机 Steam 安装；其他开发环境可以覆盖：
+本地输出位于被忽略的 `1.6/Assemblies`。每次推送到 `main` 后，GitHub Actions 会在 Ubuntu 与 .NET 10 环境中按锁文件还原、构建、生成 `StorageGroupQuotas.zip`、上传工作流产物，并更新标签为 `continuous` 的滚动预发布。
 
-```powershell
-dotnet build .\Source\StorageGroupQuotas.csproj -c Release `
-  -p:RimWorldManagedDir="X:\RimWorld\RimWorldWin64_Data\Managed" `
-  -p:HarmonyDir="X:\Harmony\Assemblies"
-```
-
-输出位于 `1.6/Assemblies`。干净的 Workshop 包只应包含 `About`、`Defs`、`Languages` 和 Release DLL 等运行文件；首次上传后必须保留 `About/PublishedFileId.txt`，以后才能更新同一创意工坊项目。
+GitHub 安装包包含 `About`、`Defs`、`Languages`、Release DLL 和 README。干净的 Workshop 包只应包含 `About`、`Defs`、`Languages` 和 Release DLL 等运行文件；首次上传后必须保留 `About/PublishedFileId.txt`，以后才能更新同一创意工坊项目。
