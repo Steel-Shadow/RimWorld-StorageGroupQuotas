@@ -154,7 +154,9 @@ namespace StorageGroupQuotas
                     Widgets.DrawLightHighlight(row);
                 }
 
-                Widgets.Label(new Rect(6f, row.y + 4f, 300f, 25f), def.LabelCap);
+                Rect iconRect = new Rect(6f, row.y + 3f, 26f, 26f);
+                Widgets.DefIcon(iconRect, def);
+                Widgets.Label(new Rect(38f, row.y + 4f, 268f, 25f), def.LabelCap);
                 counts.TryGetValue(def, out int current);
                 stackCounts.TryGetValue(def, out int currentStacks);
                 Widgets.Label(new Rect(312f, row.y + 4f, 112f, 25f),

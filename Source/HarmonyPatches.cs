@@ -109,8 +109,15 @@ namespace StorageGroupQuotas
     [HarmonyPatch(typeof(ITab_Storage), "FillTab")]
     internal static class Patch_ITab_Storage_FillTab
     {
+        private const float QuotaButtonX = 180f;
+        private const float QuotaButtonMaxWidth = 90f;
+        private const float CloseButtonGap = 8f;
+        private const float MinQuotaButtonWidth = 64f;
+
         private static readonly PropertyInfo SelectedParentProperty =
             AccessTools.Property(typeof(ITab_Storage), "SelStoreSettingsParent");
+        private static readonly FieldInfo TabSizeField =
+            AccessTools.Field(typeof(InspectTabBase), "size");
 
         private static void Postfix(ITab_Storage __instance)
         {
@@ -120,7 +127,23 @@ namespace StorageGroupQuotas
                 return;
             }
 
-            if (Widgets.ButtonText(new Rect(180f, 10f, 110f, 24f), "SGQ_QuotaButton".Translate()))
+            Vector2 tabSize = TabSizeField?.GetValue(__instance) is Vector2 currentSize
+                ? currentSize
+                : new Vector2(300f, 480f);
+            float buttonWidth = Mathf.Min(
+                QuotaButtonMaxWidth,
+                tabSize.x
+                    - QuotaButtonX
+                    - Widgets.CloseButtonSize
+                    - Widgets.CloseButtonMargin
+                    - CloseButtonGap);
+            if (buttonWidth < MinQuotaButtonWidth)
+            {
+                return;
+            }
+
+            Rect buttonRect = new Rect(QuotaButtonX, 10f, buttonWidth, 24f);
+            if (Widgets.ButtonText(buttonRect, "SGQ_QuotaButton".Translate()))
             {
                 Find.WindowStack.Add(new Window_StorageQuotas(parent.GetStoreSettings()));
             }
