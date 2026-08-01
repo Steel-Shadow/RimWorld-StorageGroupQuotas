@@ -10,6 +10,9 @@ namespace StorageGroupQuotas
 {
     public sealed class WorkGiver_MoveQuotaOverflow : WorkGiver_Scanner
     {
+        private const float BatchSearchRadius = 12f;
+        private const int MaxBatchSources = 64;
+
         public override ThingRequest PotentialWorkThingRequest => ThingRequest.ForGroup(ThingRequestGroup.Undefined);
 
         public override bool Prioritized => true;
@@ -39,6 +42,7 @@ namespace StorageGroupQuotas
             }
 
             int amountToMoveOutside = QuotaUtility.OverflowCount(thing);
+            bool isTotalCountOverflow = amountToMoveOutside > 0;
             if (amountToMoveOutside <= 0)
             {
                 Job rebalanceJob = TryMakeInternalRebalanceJob(pawn, thing);
@@ -57,6 +61,15 @@ namespace StorageGroupQuotas
 
             if (TryFindStorageOutsideSource(pawn, thing, out IntVec3 storageCell, out int capacity))
             {
+                if (isTotalCountOverflow)
+                {
+                    Job batchJob = TryMakePickUpAndHaulBatchJob(pawn, thing, amountToMoveOutside);
+                    if (batchJob != null)
+                    {
+                        return batchJob;
+                    }
+                }
+
                 Job job = JobMaker.MakeJob(JobDefOf.HaulToCell, thing, storageCell);
                 job.count = Math.Min(Math.Min(amountToMoveOutside, thing.stackCount), capacity);
                 job.haulMode = HaulMode.ToCellStorage;
@@ -67,6 +80,15 @@ namespace StorageGroupQuotas
 
             if (TryFindOutsideFloorCell(pawn, thing, out IntVec3 floorCell))
             {
+                if (isTotalCountOverflow)
+                {
+                    Job batchJob = TryMakePickUpAndHaulBatchJob(pawn, thing, amountToMoveOutside);
+                    if (batchJob != null)
+                    {
+                        return batchJob;
+                    }
+                }
+
                 Job job = JobMaker.MakeJob(JobDefOf.HaulToCell, thing, floorCell);
                 job.count = Math.Min(amountToMoveOutside, thing.stackCount);
                 job.haulMode = HaulMode.ToCellNonStorage;
@@ -78,7 +100,7 @@ namespace StorageGroupQuotas
             return null;
         }
 
-        private static bool BasicChecks(Pawn pawn, Thing thing)
+        internal static bool BasicChecks(Pawn pawn, Thing thing)
         {
             return pawn != null
                 && thing != null
@@ -96,8 +118,24 @@ namespace StorageGroupQuotas
             out IntVec3 foundCell,
             out int capacity)
         {
+            return TryFindStorageOutsideSource(
+                pawn,
+                thing,
+                QuotaUtility.ScopeForThing(thing),
+                null,
+                out foundCell,
+                out capacity);
+        }
+
+        internal static bool TryFindStorageOutsideSource(
+            Pawn pawn,
+            Thing thing,
+            ISlotGroup source,
+            HashSet<IntVec3> excludedCells,
+            out IntVec3 foundCell,
+            out int capacity)
+        {
             Map map = pawn.Map;
-            ISlotGroup source = QuotaUtility.ScopeForThing(thing);
             HashSet<ISlotGroup> seen = new HashSet<ISlotGroup>(ReferenceComparer.Instance);
 
             foreach (SlotGroup local in map.haulDestinationManager.AllGroupsListInPriorityOrder)
@@ -111,21 +149,36 @@ namespace StorageGroupQuotas
                     continue;
                 }
 
-                if (StoreUtility.TryFindBestBetterStoreCellForIn(
-                    thing,
-                    pawn,
-                    map,
-                    StoragePriority.Unstored,
-                    pawn.Faction,
-                    candidate,
-                    out IntVec3 cell,
-                    true))
+                if ((excludedCells == null || excludedCells.Count == 0)
+                    && StoreUtility.TryFindBestBetterStoreCellForIn(
+                        thing,
+                        pawn,
+                        map,
+                        StoragePriority.Unstored,
+                        pawn.Faction,
+                        candidate,
+                        out IntVec3 bestCell,
+                        true))
                 {
-                    int quotaCapacity = QuotaUtility.RemainingForDestination(thing, cell, map);
-                    int cellCapacity = cell.GetItemStackSpaceLeftFor(map, thing.def);
-                    capacity = quotaCapacity == int.MaxValue
-                        ? cellCapacity
-                        : Math.Min(cellCapacity, quotaCapacity);
+                    capacity = DestinationCapacity(pawn, thing, bestCell, source);
+                    if (capacity > 0)
+                    {
+                        foundCell = bestCell;
+                        return true;
+                    }
+                }
+
+                List<IntVec3> cells = new List<IntVec3>(candidate.CellsList);
+                cells.Sort((left, right) =>
+                    left.DistanceToSquared(pawn.Position).CompareTo(right.DistanceToSquared(pawn.Position)));
+                foreach (IntVec3 cell in cells)
+                {
+                    if (excludedCells?.Contains(cell) == true)
+                    {
+                        continue;
+                    }
+
+                    capacity = DestinationCapacity(pawn, thing, cell, source);
                     if (capacity > 0)
                     {
                         foundCell = cell;
@@ -137,6 +190,135 @@ namespace StorageGroupQuotas
             foundCell = IntVec3.Invalid;
             capacity = 0;
             return false;
+        }
+
+        internal static int DestinationCapacity(
+            Pawn pawn,
+            Thing thing,
+            IntVec3 cell,
+            ISlotGroup source,
+            bool alreadyReservedByPawn = false)
+        {
+            Map map = pawn?.Map;
+            if (map == null || thing == null || !cell.InBounds(map))
+            {
+                return 0;
+            }
+
+            ISlotGroup destination = QuotaUtility.ScopeAt(cell, map);
+            if (destination == null)
+            {
+                return FloorDestinationCapacity(pawn, thing, cell);
+            }
+
+            bool validCell = alreadyReservedByPawn
+                ? !cell.IsForbidden(pawn)
+                    && !cell.ContainsStaticFire(map)
+                    && StoreUtility.IsValidStorageFor(cell, map, thing)
+                : StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, pawn.Faction);
+            if (ReferenceEquals(destination, source)
+                || !destination.Settings.AllowedToAccept(thing)
+                || !validCell)
+            {
+                return 0;
+            }
+
+            int quotaCapacity = QuotaUtility.RemainingForDestination(thing, cell, map);
+            int physicalCapacity = PickUpAndHaulCompatibility.CapacityAt(thing, cell, map);
+            return quotaCapacity == int.MaxValue
+                ? physicalCapacity
+                : Math.Min(physicalCapacity, quotaCapacity);
+        }
+
+        private static int FloorDestinationCapacity(Pawn pawn, Thing thing, IntVec3 cell)
+        {
+            Map map = pawn.Map;
+            if (cell.GetSlotGroup(map) != null
+                || cell.IsForbidden(pawn)
+                || !cell.Standable(map)
+                || cell.ContainsStaticFire(map)
+                || GenPlace.HaulPlaceBlockerIn(thing, cell, map, true) != null)
+            {
+                return 0;
+            }
+
+            if (thing.def.BlocksPlanting() && map.zoneManager.ZoneAt(cell) is Zone_Growing)
+            {
+                return 0;
+            }
+
+            return Math.Max(0, cell.GetItemStackSpaceLeftFor(map, thing.def));
+        }
+
+        private static Job TryMakePickUpAndHaulBatchJob(
+            Pawn pawn,
+            Thing seed,
+            int seedOverflow)
+        {
+            JobDef batchJobDef = DefDatabase<JobDef>.GetNamedSilentFail("SGQ_HaulQuotaOverflowBatch");
+            if (batchJobDef == null
+                || !PickUpAndHaulCompatibility.CanUseBatchHauling(pawn, seed)
+                || CombatExtendedInventoryCompatibility.LimitCount(
+                    pawn,
+                    seed,
+                    Math.Min(seedOverflow, seed.stackCount)) <= 0)
+            {
+                return null;
+            }
+
+            ISlotGroup source = QuotaUtility.ScopeForThing(seed);
+            if (source == null)
+            {
+                return null;
+            }
+
+            List<Thing> candidates = QuotaUtility.OverflowThings(pawn.Map)
+                .Where(candidate => candidate != null
+                    && ReferenceEquals(QuotaUtility.ScopeForThing(candidate), source)
+                    && candidate.Position.DistanceToSquared(seed.Position)
+                        <= BatchSearchRadius * BatchSearchRadius)
+                .OrderBy(candidate => candidate == seed ? 0 : 1)
+                .ThenBy(candidate => candidate.Position.DistanceToSquared(seed.Position))
+                .ThenBy(candidate => candidate.thingIDNumber)
+                .Take(MaxBatchSources)
+                .ToList();
+
+            if (!candidates.Contains(seed))
+            {
+                candidates.Insert(0, seed);
+            }
+
+            List<LocalTargetInfo> targets = new List<LocalTargetInfo>();
+            List<int> counts = new List<int>();
+            foreach (Thing candidate in candidates)
+            {
+                if (!BasicChecks(pawn, candidate)
+                    || !PickUpAndHaulCompatibility.AllowsThing(candidate))
+                {
+                    continue;
+                }
+
+                int overflow = Math.Min(QuotaUtility.OverflowCount(candidate), candidate.stackCount);
+                if (overflow <= 0)
+                {
+                    continue;
+                }
+
+                targets.Add(candidate);
+                counts.Add(overflow);
+            }
+
+            if (targets.Count == 0 || targets[0].Thing != seed)
+            {
+                return null;
+            }
+
+            Job job = JobMaker.MakeJob(batchJobDef);
+            job.targetQueueA = targets;
+            job.countQueue = counts;
+            job.SetTarget(TargetIndex.C, seed.Position);
+            job.ignoreDesignations = true;
+            return job;
         }
 
         private static Job TryMakeInternalRebalanceJob(Pawn pawn, Thing thing)
@@ -302,14 +484,25 @@ namespace StorageGroupQuotas
 
         private static bool TryFindOutsideFloorCell(Pawn pawn, Thing thing, out IntVec3 cell)
         {
+            return TryFindOutsideFloorCell(pawn, thing, thing.Position, null, out cell);
+        }
+
+        internal static bool TryFindOutsideFloorCell(
+            Pawn pawn,
+            Thing thing,
+            IntVec3 searchCenter,
+            HashSet<IntVec3> excludedCells,
+            out IntVec3 cell)
+        {
             Map map = pawn.Map;
             int cellsToCheck = GenRadial.NumCellsInRadius(40f);
             for (int i = 0; i < cellsToCheck; i++)
             {
-                IntVec3 candidate = thing.Position + GenRadial.RadialPattern[i];
+                IntVec3 candidate = searchCenter + GenRadial.RadialPattern[i];
                 if (!candidate.InBounds(map)
+                    || excludedCells?.Contains(candidate) == true
                     || candidate.GetSlotGroup(map) != null
-                    || candidate == thing.Position
+                    || (thing.Spawned && candidate == thing.Position)
                     || candidate.IsForbidden(pawn)
                     || !candidate.Standable(map)
                     || candidate.ContainsStaticFire(map)
@@ -341,4 +534,5 @@ namespace StorageGroupQuotas
             public int GetHashCode(ISlotGroup obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
         }
     }
+
 }

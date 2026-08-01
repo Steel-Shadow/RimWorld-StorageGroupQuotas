@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <JobDef>
+    <defName>SGQ_HaulQuotaOverflowBatch</defName>
+    <driverClass>StorageGroupQuotas.JobDriver_HaulQuotaOverflowBatch</driverClass>
+    <reportString>bulk-hauling storage quota overflow.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+    <suspendable>false</suspendable>
+  </JobDef>
+</Defs>
