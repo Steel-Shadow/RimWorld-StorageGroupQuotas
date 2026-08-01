@@ -10,7 +10,19 @@ namespace StorageGroupQuotas
     public sealed class Window_StorageQuotas : Window
     {
         private const int MaxQuota = 1000000000;
+        private const int MaxStackCount = 1000;
         private const int StorageTreeOpenMask = 8;
+        private const float EditorStartX = 384f;
+        private const float SimilarEditorWidth = 148f;
+        private const float SimilarEditorGap = 8f;
+        private const float TotalEditorWidth = 304f;
+
+        private enum QuotaField
+        {
+            Upper,
+            MaxStacks
+        }
+
         private readonly StorageSettings settings;
         private readonly StorageQuotaData data;
         private readonly List<ThingDef> defs = new List<ThingDef>();
@@ -27,7 +39,7 @@ namespace StorageGroupQuotas
         private Vector2 scrollPosition;
         private string search = string.Empty;
         private string defaultBuffer;
-        private string similarStackCountBuffer;
+        private string defaultMaxStacksBuffer;
         private int lastTreeRefreshFrame = -1;
 
         public override Vector2 InitialSize => new Vector2(780f, 680f);
@@ -37,7 +49,7 @@ namespace StorageGroupQuotas
             this.settings = settings;
             data = QuotaDataStore.Get(settings);
             defaultBuffer = data.DefaultUpper.ToString();
-            similarStackCountBuffer = data.SimilarStackCount.ToString();
+            defaultMaxStacksBuffer = data.DefaultMaxStacks.ToString();
             doCloseX = true;
             draggable = true;
             absorbInputAroundWindow = false;
@@ -81,7 +93,7 @@ namespace StorageGroupQuotas
 
             string description = data.Mode == QuotaMode.TotalCount
                 ? "SGQ_DescriptionTotal".Translate()
-                : "SGQ_DescriptionSimilar".Translate(data.SimilarStackCount);
+                : "SGQ_DescriptionSimilar".Translate();
             Widgets.Label(new Rect(0f, 74f, inRect.width, 46f), description);
 
             int oldDefault = data.DefaultUpper;
@@ -99,17 +111,20 @@ namespace StorageGroupQuotas
             data.DefaultUpper = defaultUpper;
             if (data.Mode == QuotaMode.SimilarStacks)
             {
-                Widgets.Label(new Rect(322f, 126f, 112f, 28f), "SGQ_SimilarCount".Translate());
-                int similarCount = data.SimilarStackCount;
+                Rect defaultMaxStacksLabelRect = new Rect(322f, 126f, 132f, 28f);
+                string defaultMaxStacksLabel = "SGQ_DefaultMaxStacks".Translate();
+                Widgets.LabelEllipses(defaultMaxStacksLabelRect, defaultMaxStacksLabel);
+                TooltipHandler.TipRegion(defaultMaxStacksLabelRect, defaultMaxStacksLabel);
+                int similarCount = data.DefaultMaxStacks;
                 Widgets.TextFieldNumeric(
-                    new Rect(438f, 122f, 80f, 28f),
+                    new Rect(458f, 122f, 80f, 28f),
                     ref similarCount,
-                    ref similarStackCountBuffer,
+                    ref defaultMaxStacksBuffer,
                     1,
-                    1000);
-                if (similarCount != data.SimilarStackCount)
+                    MaxStackCount);
+                if (similarCount != data.DefaultMaxStacks)
                 {
-                    data.SimilarStackCount = similarCount;
+                    data.DefaultMaxStacks = similarCount;
                     QuotaUtility.NotifySettingsChanged(settings);
                 }
             }
@@ -133,12 +148,37 @@ namespace StorageGroupQuotas
 
             float tableTop = 221f;
             Widgets.DrawMenuSection(new Rect(0f, tableTop, inRect.width, inRect.height - tableTop - 38f));
-            Widgets.Label(new Rect(10f, tableTop + 6f, 300f, 25f), "SGQ_ItemOrCategory".Translate());
-            Widgets.Label(new Rect(318f, tableTop + 6f, 115f, 25f), "SGQ_CurrentAndStacks".Translate());
+            Widgets.Label(new Rect(10f, tableTop + 6f, 272f, 25f), "SGQ_ItemOrCategory".Translate());
+            Rect currentHeaderRect = new Rect(290f, tableTop + 6f, 92f, 25f);
+            string currentHeader = "SGQ_CurrentAndStacks".Translate();
+            Widgets.LabelEllipses(currentHeaderRect, currentHeader);
+            TooltipHandler.TipRegion(currentHeaderRect, currentHeader);
             string quotaHeader = data.Mode == QuotaMode.TotalCount
                 ? "SGQ_TotalQuota".Translate()
                 : "SGQ_PerStackQuota".Translate();
-            Widgets.Label(new Rect(440f, tableTop + 6f, 150f, 25f), quotaHeader);
+            Rect quotaHeaderRect = new Rect(
+                390f,
+                tableTop + 6f,
+                data.Mode == QuotaMode.TotalCount ? TotalEditorWidth : SimilarEditorWidth,
+                25f);
+            Widgets.Label(quotaHeaderRect, quotaHeader);
+            TooltipHandler.TipRegion(
+                quotaHeaderRect,
+                (data.Mode == QuotaMode.TotalCount
+                    ? "SGQ_TotalQuotaTooltip"
+                    : "SGQ_PerStackQuotaTooltip").Translate());
+            if (data.Mode == QuotaMode.SimilarStacks)
+            {
+                Rect maxStacksHeaderRect = new Rect(
+                    546f,
+                    tableTop + 6f,
+                    SimilarEditorWidth,
+                    25f);
+                Widgets.Label(maxStacksHeaderRect, "SGQ_MaxStacks".Translate());
+                TooltipHandler.TipRegion(
+                    maxStacksHeaderRect,
+                    "SGQ_MaxStacksTooltip".Translate());
+            }
 
             treeModel.BuildRows(search, expandedCategories, visibleRows);
 
@@ -168,7 +208,7 @@ namespace StorageGroupQuotas
                 }
 
                 Widgets.DrawHighlightIfMouseover(row);
-                float indent = Math.Min(210f, treeRow.Depth * 18f);
+                float indent = Math.Min(170f, treeRow.Depth * 18f);
                 if (treeRow.IsCategory)
                 {
                     ThingCategoryDef category = treeRow.Category;
@@ -210,13 +250,17 @@ namespace StorageGroupQuotas
                     Rect categoryLabelRect = new Rect(
                         labelX,
                         row.y + 4f,
-                        Math.Max(10f, 304f - labelX),
+                        Math.Max(10f, 276f - labelX),
                         25f);
                     Widgets.LabelEllipses(categoryLabelRect, categoryLabel);
-                    Widgets.Label(new Rect(312f, row.y + 4f, 112f, 25f), "—");
+                    Widgets.Label(new Rect(284f, row.y + 4f, 92f, 25f), "—");
                     TooltipHandler.TipRegion(
                         categoryLabelRect,
-                        categoryLabel + "\n\n" + "SGQ_CategoryQuotaTooltip".Translate());
+                        categoryLabel
+                            + "\n\n"
+                            + (data.Mode == QuotaMode.TotalCount
+                                ? "SGQ_CategoryTotalTooltip"
+                                : "SGQ_CategorySimilarTooltip").Translate());
                     DrawQuotaEditor(row, null, category);
                 }
                 else
@@ -236,7 +280,7 @@ namespace StorageGroupQuotas
                     Rect thingLabelRect = new Rect(
                         iconX + 32f,
                         row.y + 4f,
-                        Math.Max(10f, 304f - iconX - 32f),
+                        Math.Max(10f, 276f - iconX - 32f),
                         25f);
                     Widgets.LabelEllipses(thingLabelRect, thingLabel);
                     GUI.color = oldColor;
@@ -247,9 +291,10 @@ namespace StorageGroupQuotas
                             : thingLabel + "\n\n" + "SGQ_RetainedDisallowedItem".Translate());
                     counts.TryGetValue(def, out int current);
                     stackCounts.TryGetValue(def, out int currentStacks);
-                    Widgets.Label(
-                        new Rect(312f, row.y + 4f, 112f, 25f),
-                        "SGQ_CountAndStacks".Translate(current, currentStacks));
+                    Rect currentRect = new Rect(284f, row.y + 4f, 92f, 25f);
+                    string currentLabel = "SGQ_CountAndStacks".Translate(current, currentStacks);
+                    Widgets.LabelEllipses(currentRect, currentLabel);
+                    TooltipHandler.TipRegion(currentRect, currentLabel);
                     DrawQuotaEditor(row, def, null);
                 }
             }
@@ -275,7 +320,7 @@ namespace StorageGroupQuotas
                         rebalanceStacks += scope.HeldThings.Count(thing =>
                             thing.def == def && thing.stackCount > perStack);
                         stackCounts.TryGetValue(def, out int currentStacks);
-                        rebalanceStacks += Math.Max(0, currentStacks - data.SimilarStackCount);
+                        rebalanceStacks += Math.Max(0, currentStacks - data.EffectiveMaxStacks(def));
                     }
                 }
             }
@@ -434,31 +479,87 @@ namespace StorageGroupQuotas
             ThingDef thing,
             ThingCategoryDef category)
         {
+            if (data.Mode == QuotaMode.TotalCount)
+            {
+                DrawQuotaFieldEditor(
+                    new Rect(EditorStartX, row.y + 2f, TotalEditorWidth, 28f),
+                    thing,
+                    category,
+                    QuotaField.Upper);
+                return;
+            }
+
+            DrawQuotaFieldEditor(
+                new Rect(EditorStartX, row.y + 2f, SimilarEditorWidth, 28f),
+                thing,
+                category,
+                QuotaField.Upper);
+            DrawQuotaFieldEditor(
+                new Rect(
+                    EditorStartX + SimilarEditorWidth + SimilarEditorGap,
+                    row.y + 2f,
+                    SimilarEditorWidth,
+                    28f),
+                thing,
+                category,
+                QuotaField.MaxStacks);
+        }
+
+        private void DrawQuotaFieldEditor(
+            Rect editorRect,
+            ThingDef thing,
+            ThingCategoryDef category,
+            QuotaField field)
+        {
             bool isThing = thing != null;
-            bool hasOverride = isThing
-                ? data.HasOverride(thing)
-                : data.HasOverride(category);
-            string bufferKey = (isThing ? "thing:" : "category:")
+            bool isMaxStacks = field == QuotaField.MaxStacks;
+            bool hasOverride = isMaxStacks
+                ? (isThing
+                    ? data.HasMaxStacksOverride(thing)
+                    : data.HasMaxStacksOverride(category))
+                : (isThing
+                    ? data.HasOverride(thing)
+                    : data.HasOverride(category));
+            string bufferKey = (isMaxStacks ? "stacks:" : "upper:")
+                + (isThing ? "thing:" : "category:")
                 + (isThing ? thing.defName : category.defName);
 
             if (!hasOverride)
             {
-                int inheritedValue = isThing
-                    ? data.InheritedValue(thing)
-                    : data.InheritedValue(category);
-                ThingCategoryDef inheritedCategory = isThing
-                    ? data.InheritedCategory(thing)
-                    : data.InheritedCategory(category);
+                int inheritedValue = isMaxStacks
+                    ? (isThing
+                        ? data.InheritedMaxStacks(thing)
+                        : data.InheritedMaxStacks(category))
+                    : (isThing
+                        ? data.InheritedValue(thing)
+                        : data.InheritedValue(category));
+                ThingCategoryDef inheritedCategory = isMaxStacks
+                    ? (isThing
+                        ? data.InheritedMaxStacksCategory(thing)
+                        : data.InheritedMaxStacksCategory(category))
+                    : (isThing
+                        ? data.InheritedCategory(thing)
+                        : data.InheritedCategory(category));
                 string inheritedSource = inheritedCategory?.LabelCap.ToString()
                     ?? "SGQ_GlobalDefault".Translate();
-                Rect inheritRect = new Rect(432f, row.y + 2f, 253f, 28f);
                 if (Widgets.ButtonText(
-                    inheritRect,
-                    "SGQ_Inherit".Translate() + ": " + FormatQuotaValue(inheritedValue)))
+                    editorRect,
+                    "SGQ_InheritCompact".Translate(FormatQuotaValue(inheritedValue, field, true))))
                 {
                     int initial = inheritedValue;
 
-                    if (isThing)
+                    if (isMaxStacks)
+                    {
+                        if (isThing)
+                        {
+                            data.SetMaxStacksOverride(thing, initial);
+                        }
+                        else
+                        {
+                            data.SetMaxStacksOverride(category, initial);
+                        }
+                    }
+                    else if (isThing)
                     {
                         data.SetOverride(thing, initial);
                     }
@@ -473,28 +574,57 @@ namespace StorageGroupQuotas
                 }
 
                 TooltipHandler.TipRegion(
-                    inheritRect,
-                    "SGQ_InheritedFrom".Translate(inheritedSource));
+                    editorRect,
+                    "SGQ_InheritedFieldTooltip".Translate(
+                        FormatQuotaValue(inheritedValue, field, false),
+                        inheritedSource));
                 return;
             }
 
-            int value = isThing ? data.GetOverride(thing) : data.GetOverride(category);
+            int value = isMaxStacks
+                ? (isThing
+                    ? data.GetMaxStacksOverride(thing)
+                    : data.GetMaxStacksOverride(category))
+                : (isThing ? data.GetOverride(thing) : data.GetOverride(category));
             if (!numberBuffers.TryGetValue(bufferKey, out string buffer))
             {
                 buffer = value.ToString();
             }
 
             int oldValue = value;
+            float removeWidth = data.Mode == QuotaMode.SimilarStacks ? 28f : 150f;
+            float gap = 8f;
+            Rect valueRect = new Rect(
+                editorRect.x,
+                editorRect.y,
+                editorRect.width - removeWidth - gap,
+                editorRect.height);
+            Rect removeRect = new Rect(
+                valueRect.xMax + gap,
+                editorRect.y,
+                removeWidth,
+                editorRect.height);
             Widgets.TextFieldNumeric(
-                new Rect(432f, row.y + 2f, 95f, 28f),
+                valueRect,
                 ref value,
                 ref buffer,
-                0,
-                MaxQuota);
+                isMaxStacks ? 1 : 0,
+                isMaxStacks ? MaxStackCount : MaxQuota);
             numberBuffers[bufferKey] = buffer;
             if (value != oldValue)
             {
-                if (isThing)
+                if (isMaxStacks)
+                {
+                    if (isThing)
+                    {
+                        data.SetMaxStacksOverride(thing, value);
+                    }
+                    else
+                    {
+                        data.SetMaxStacksOverride(category, value);
+                    }
+                }
+                else if (isThing)
                 {
                     data.SetOverride(thing, value);
                 }
@@ -506,11 +636,23 @@ namespace StorageGroupQuotas
                 QuotaUtility.NotifySettingsChanged(settings);
             }
 
-            if (Widgets.ButtonText(
-                new Rect(535f, row.y + 2f, 150f, 28f),
-                "SGQ_RemoveOverride".Translate()))
+            string removeLabel = data.Mode == QuotaMode.SimilarStacks
+                ? "×"
+                : "SGQ_RemoveOverride".Translate();
+            if (Widgets.ButtonText(removeRect, removeLabel))
             {
-                if (isThing)
+                if (isMaxStacks)
+                {
+                    if (isThing)
+                    {
+                        data.RemoveMaxStacksOverride(thing);
+                    }
+                    else
+                    {
+                        data.RemoveMaxStacksOverride(category);
+                    }
+                }
+                else if (isThing)
                 {
                     data.RemoveOverride(thing);
                 }
@@ -522,18 +664,48 @@ namespace StorageGroupQuotas
                 numberBuffers.Remove(bufferKey);
                 QuotaUtility.NotifySettingsChanged(settings);
             }
+
+            int inheritedAfterRemoval = isMaxStacks
+                ? (isThing
+                    ? data.InheritedMaxStacks(thing)
+                    : data.InheritedMaxStacks(category))
+                : (isThing
+                    ? data.InheritedValue(thing)
+                    : data.InheritedValue(category));
+            ThingCategoryDef inheritedCategoryAfterRemoval = isMaxStacks
+                ? (isThing
+                    ? data.InheritedMaxStacksCategory(thing)
+                    : data.InheritedMaxStacksCategory(category))
+                : (isThing
+                    ? data.InheritedCategory(thing)
+                    : data.InheritedCategory(category));
+            string inheritedSourceAfterRemoval = inheritedCategoryAfterRemoval?.LabelCap.ToString()
+                ?? "SGQ_GlobalDefault".Translate();
+            string fieldLabel = (isMaxStacks
+                ? "SGQ_MaxStacks"
+                : data.Mode == QuotaMode.TotalCount
+                    ? "SGQ_TotalQuota"
+                    : "SGQ_PerStackQuota").Translate();
+            TooltipHandler.TipRegion(
+                removeRect,
+                "SGQ_RemoveFieldOverrideTooltip".Translate(
+                    fieldLabel,
+                    FormatQuotaValue(inheritedAfterRemoval, field, false),
+                    inheritedSourceAfterRemoval));
         }
 
-        private string FormatQuotaValue(int value)
+        private string FormatQuotaValue(int value, QuotaField field, bool compact)
         {
-            if (value > 0)
+            if (field == QuotaField.MaxStacks || value > 0)
             {
                 return value.ToString();
             }
 
             return data.Mode == QuotaMode.TotalCount
                 ? "SGQ_Unlimited".Translate()
-                : "SGQ_NativeStackLimit".Translate();
+                : (compact
+                    ? "SGQ_NativeStackLimitCompact".Translate()
+                    : "SGQ_NativeStackLimit".Translate());
         }
     }
 }

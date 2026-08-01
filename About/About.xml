@@ -24,17 +24,17 @@
   </incompatibleWith>
   <description>Set per-item limits for an entire vanilla storage group. Linked shelves share one quota.
 
-The quota window uses a category tree. Unset items and child categories inherit the nearest configured parent, while exceptional items can keep their own values. Category values apply separately to each descendant item rather than forming one shared category total. The list refreshes with vanilla storage-filter changes and shares vanilla category folding.
+The quota window uses a category tree. Unset items and child categories inherit the nearest configured parent, while exceptional items can keep their own values. In Similar stacks mode, per-stack limits and maximum stack counts inherit independently. Category values apply separately to each descendant item rather than forming one shared quantity or stack pool. The list refreshes with vanilla storage-filter changes and shares vanilla category folding.
 
-Use Entire storage count when only the total matters, or Similar stacks ×N to keep several physical stacks as separate reservation targets for ammo and urgent supplies. Incoming hauling respects the remaining quota. Existing excess is moved outside the group through normal hauling jobs, never deleted.
+Use Entire storage count when only the total matters, or Similar stacks ×N to keep several physical stacks as separate reservation targets for ammo and urgent supplies. X and N can be configured independently by category or item. Incoming hauling respects the remaining quota. Existing excess is moved outside the group through normal hauling jobs, never deleted.
 
 Requires Harmony. Combat Extended ammunition is supported without a hard dependency. Includes optional Pick Up And Haul destination-capacity support. Incompatible with Stack Gap.
 
 为整个原版存储组设置按物品分别计算的数量上限；链接的物品架共享同一份配额。
 
-配额窗口使用分类树。未设置的物品和子分类会继承最近的已设置父级，少数例外物品仍可保留单独设置。分类值由每种后代物品分别使用，并不是整个分类共用的总额。列表会随原版存储筛选实时刷新，并共享原版分类折叠状态。
+配额窗口使用分类树。未设置的物品和子分类会继承最近的已设置父级，少数例外物品仍可保留单独设置。在“类似堆栈 ×N”模式中，每堆上限和最大堆数分别独立继承。分类值由每种后代物品分别使用，并不是整个分类共用的数量或堆位预算。列表会随原版存储筛选实时刷新，并共享原版分类折叠状态。
 
-只关心总量时使用“整个仓库数量”；需要为弹药或紧急补给保留多个独立预留目标时，使用“类似堆栈 ×N”。新的入库搬运会遵守剩余配额，已有超量物品会通过正常搬运移出该组，不会被删除。
+只关心总量时使用“整个仓库数量”；需要为弹药或紧急补给保留多个独立预留目标时，使用“类似堆栈 ×N”。X 和 N 都可以按分类或物品分别设置。新的入库搬运会遵守剩余配额，已有超量物品会通过正常搬运移出该组，不会被删除。
 
 需要 Harmony。支持 Combat Extended 弹药但不强制依赖 CE；为 Pick Up And Haul 提供可选的目标容量适配；与 Stack Gap 不兼容。</description>
 </ModMetaData>

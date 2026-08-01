@@ -18,6 +18,8 @@ namespace StorageGroupQuotas
         private int similarStackCount = 1;
         private Dictionary<string, int> upperByDefName = new Dictionary<string, int>();
         private Dictionary<string, int> upperByCategoryDefName = new Dictionary<string, int>();
+        private Dictionary<string, int> maxStacksByDefName = new Dictionary<string, int>();
+        private Dictionary<string, int> maxStacksByCategoryDefName = new Dictionary<string, int>();
 
         public QuotaMode Mode
         {
@@ -25,7 +27,14 @@ namespace StorageGroupQuotas
             set => quotaMode = value;
         }
 
+        // Retained as the legacy public name for the global default N.
         public int SimilarStackCount
+        {
+            get => DefaultMaxStacks;
+            set => DefaultMaxStacks = value;
+        }
+
+        public int DefaultMaxStacks
         {
             get => similarStackCount;
             set => similarStackCount = Math.Max(1, value);
@@ -42,9 +51,48 @@ namespace StorageGroupQuotas
             || upperByDefName.Count > 0
             || upperByCategoryDefName.Count > 0;
 
-        public IEnumerable<string> OverriddenDefNames => upperByDefName.Keys;
+        public bool HasPersistentSettings => Active
+            || similarStackCount != 1
+            || maxStacksByDefName.Count > 0
+            || maxStacksByCategoryDefName.Count > 0;
 
-        public IEnumerable<string> OverriddenCategoryDefNames => upperByCategoryDefName.Keys;
+        public IEnumerable<string> OverriddenDefNames
+        {
+            get
+            {
+                foreach (string defName in upperByDefName.Keys)
+                {
+                    yield return defName;
+                }
+
+                foreach (string defName in maxStacksByDefName.Keys)
+                {
+                    if (!upperByDefName.ContainsKey(defName))
+                    {
+                        yield return defName;
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<string> OverriddenCategoryDefNames
+        {
+            get
+            {
+                foreach (string defName in upperByCategoryDefName.Keys)
+                {
+                    yield return defName;
+                }
+
+                foreach (string defName in maxStacksByCategoryDefName.Keys)
+                {
+                    if (!upperByCategoryDefName.ContainsKey(defName))
+                    {
+                        yield return defName;
+                    }
+                }
+            }
+        }
 
         public int EffectiveValue(ThingDef def)
         {
@@ -113,8 +161,55 @@ namespace StorageGroupQuotas
                 return configured == 0 ? int.MaxValue : configured;
             }
 
-            long total = (long)EffectivePerStackUpper(def) * similarStackCount;
+            long total = (long)EffectivePerStackUpper(def) * EffectiveMaxStacks(def);
             return total >= int.MaxValue ? int.MaxValue : (int)total;
+        }
+
+        public int EffectiveMaxStacks(ThingDef def)
+        {
+            if (def != null && maxStacksByDefName.TryGetValue(def.defName, out int count))
+            {
+                return Math.Max(1, count);
+            }
+
+            return InheritedMaxStacks(def);
+        }
+
+        public int EffectiveMaxStacks(ThingCategoryDef category)
+        {
+            if (category != null
+                && maxStacksByCategoryDefName.TryGetValue(category.defName, out int count))
+            {
+                return Math.Max(1, count);
+            }
+
+            return InheritedMaxStacks(category);
+        }
+
+        public int InheritedMaxStacks(ThingDef def)
+        {
+            return TryFindClosestCategoryMaxStacksOverride(def, out int value, out _)
+                ? value
+                : Math.Max(1, similarStackCount);
+        }
+
+        public int InheritedMaxStacks(ThingCategoryDef category)
+        {
+            return TryFindCategoryMaxStacksOverride(category?.parent, out int value, out _)
+                ? value
+                : Math.Max(1, similarStackCount);
+        }
+
+        public ThingCategoryDef InheritedMaxStacksCategory(ThingDef def)
+        {
+            TryFindClosestCategoryMaxStacksOverride(def, out _, out ThingCategoryDef category);
+            return category;
+        }
+
+        public ThingCategoryDef InheritedMaxStacksCategory(ThingCategoryDef category)
+        {
+            TryFindCategoryMaxStacksOverride(category?.parent, out _, out ThingCategoryDef parent);
+            return parent;
         }
 
         public bool HasOverride(ThingDef def)
@@ -176,6 +271,64 @@ namespace StorageGroupQuotas
             }
         }
 
+        public bool HasMaxStacksOverride(ThingDef def)
+        {
+            return def != null && maxStacksByDefName.ContainsKey(def.defName);
+        }
+
+        public int GetMaxStacksOverride(ThingDef def)
+        {
+            return def != null
+                && maxStacksByDefName.TryGetValue(def.defName, out int value)
+                ? Math.Max(1, value)
+                : 1;
+        }
+
+        public void SetMaxStacksOverride(ThingDef def, int count)
+        {
+            if (def != null)
+            {
+                maxStacksByDefName[def.defName] = Math.Max(1, count);
+            }
+        }
+
+        public void RemoveMaxStacksOverride(ThingDef def)
+        {
+            if (def != null)
+            {
+                maxStacksByDefName.Remove(def.defName);
+            }
+        }
+
+        public bool HasMaxStacksOverride(ThingCategoryDef category)
+        {
+            return category != null && maxStacksByCategoryDefName.ContainsKey(category.defName);
+        }
+
+        public int GetMaxStacksOverride(ThingCategoryDef category)
+        {
+            return category != null
+                && maxStacksByCategoryDefName.TryGetValue(category.defName, out int value)
+                ? Math.Max(1, value)
+                : 1;
+        }
+
+        public void SetMaxStacksOverride(ThingCategoryDef category, int count)
+        {
+            if (category != null)
+            {
+                maxStacksByCategoryDefName[category.defName] = Math.Max(1, count);
+            }
+        }
+
+        public void RemoveMaxStacksOverride(ThingCategoryDef category)
+        {
+            if (category != null)
+            {
+                maxStacksByCategoryDefName.Remove(category.defName);
+            }
+        }
+
         public StorageQuotaData Clone()
         {
             return new StorageQuotaData
@@ -184,7 +337,9 @@ namespace StorageGroupQuotas
                 quotaMode = quotaMode,
                 similarStackCount = similarStackCount,
                 upperByDefName = new Dictionary<string, int>(upperByDefName),
-                upperByCategoryDefName = new Dictionary<string, int>(upperByCategoryDefName)
+                upperByCategoryDefName = new Dictionary<string, int>(upperByCategoryDefName),
+                maxStacksByDefName = new Dictionary<string, int>(maxStacksByDefName),
+                maxStacksByCategoryDefName = new Dictionary<string, int>(maxStacksByCategoryDefName)
             };
         }
 
@@ -201,6 +356,16 @@ namespace StorageGroupQuotas
                 "upperByCategoryDefName",
                 LookMode.Value,
                 LookMode.Value);
+            Scribe_Collections.Look(
+                ref maxStacksByDefName,
+                "maxStacksByDefName",
+                LookMode.Value,
+                LookMode.Value);
+            Scribe_Collections.Look(
+                ref maxStacksByCategoryDefName,
+                "maxStacksByCategoryDefName",
+                LookMode.Value,
+                LookMode.Value);
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 if (upperByDefName == null)
@@ -213,7 +378,27 @@ namespace StorageGroupQuotas
                     upperByCategoryDefName = new Dictionary<string, int>();
                 }
 
+                if (maxStacksByDefName == null)
+                {
+                    maxStacksByDefName = new Dictionary<string, int>();
+                }
+
+                if (maxStacksByCategoryDefName == null)
+                {
+                    maxStacksByCategoryDefName = new Dictionary<string, int>();
+                }
+
                 similarStackCount = Math.Max(1, similarStackCount);
+                ClampMaxStacks(maxStacksByDefName);
+                ClampMaxStacks(maxStacksByCategoryDefName);
+            }
+        }
+
+        private static void ClampMaxStacks(Dictionary<string, int> values)
+        {
+            foreach (string key in new List<string>(values.Keys))
+            {
+                values[key] = Math.Max(1, values[key]);
             }
         }
 
@@ -242,6 +427,36 @@ namespace StorageGroupQuotas
             }
 
             value = 0;
+            source = null;
+            return false;
+        }
+
+        private bool TryFindClosestCategoryMaxStacksOverride(
+            ThingDef def,
+            out int value,
+            out ThingCategoryDef source)
+        {
+            return TryFindCategoryMaxStacksOverride(def?.FirstThingCategory, out value, out source);
+        }
+
+        private bool TryFindCategoryMaxStacksOverride(
+            ThingCategoryDef category,
+            out int value,
+            out ThingCategoryDef source)
+        {
+            for (int distance = 0; category != null && distance < 128; distance++)
+            {
+                if (maxStacksByCategoryDefName.TryGetValue(category.defName, out value))
+                {
+                    value = Math.Max(1, value);
+                    source = category;
+                    return true;
+                }
+
+                category = category.parent;
+            }
+
+            value = 1;
             source = null;
             return false;
         }

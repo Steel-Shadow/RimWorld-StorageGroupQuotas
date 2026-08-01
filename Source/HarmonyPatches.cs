@@ -31,7 +31,7 @@ namespace StorageGroupQuotas
         {
             StorageQuotaData data = null;
             QuotaDataStore.TryGet(__instance, out data);
-            if (Scribe.mode == LoadSaveMode.Saving && data != null && !data.Active)
+            if (Scribe.mode == LoadSaveMode.Saving && data != null && !data.HasPersistentSettings)
             {
                 data = null;
             }

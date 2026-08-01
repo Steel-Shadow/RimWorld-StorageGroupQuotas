@@ -6,9 +6,10 @@
   <SGQ_ModeTotal>Entire storage count</SGQ_ModeTotal>
   <SGQ_ModeSimilar>Similar stacks ×N</SGQ_ModeSimilar>
   <SGQ_DescriptionTotal>The quota is the total number of each item allowed across this entire vanilla storage group. Excess is hauled outside the group.</SGQ_DescriptionTotal>
-  <SGQ_DescriptionSimilar>The quota is the maximum amount in one stack. The group keeps at most {0} independent similar stacks; excess total quantity is hauled outside.</SGQ_DescriptionSimilar>
+  <SGQ_DescriptionSimilar>Set a maximum amount per stack and a maximum number of stacks for each item. Both values inherit independently through the category tree; total capacity = per-stack quota × max stacks.</SGQ_DescriptionSimilar>
   <SGQ_DefaultTotal>Default total quota</SGQ_DefaultTotal>
   <SGQ_DefaultPerStack>Default per-stack quota</SGQ_DefaultPerStack>
+  <SGQ_DefaultMaxStacks>Default max stacks</SGQ_DefaultMaxStacks>
   <SGQ_SimilarCount>Stack count ×</SGQ_SimilarCount>
   <SGQ_Unlimited>Unlimited</SGQ_Unlimited>
   <SGQ_Search>Search items...</SGQ_Search>
@@ -18,19 +19,29 @@
   <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
   <SGQ_TotalQuota>Total quota</SGQ_TotalQuota>
   <SGQ_PerStackQuota>Per-stack quota</SGQ_PerStackQuota>
+  <SGQ_MaxStacks>Max stacks</SGQ_MaxStacks>
+  <SGQ_TotalQuotaTooltip>Maximum total quantity of each item type in this storage group.</SGQ_TotalQuotaTooltip>
+  <SGQ_PerStackQuotaTooltip>Maximum quantity in each physical stack of an item type. A value of 0 uses that item's native stack limit.</SGQ_PerStackQuotaTooltip>
+  <SGQ_MaxStacksTooltip>Maximum physical stacks kept for each item type. This is an upper bound, not a target.</SGQ_MaxStacksTooltip>
   <SGQ_Inherit>Inherited</SGQ_Inherit>
+  <SGQ_InheritCompact>Inherit: {0}</SGQ_InheritCompact>
   <SGQ_Override>Override</SGQ_Override>
   <SGQ_RemoveOverride>Use inherited</SGQ_RemoveOverride>
   <SGQ_OverflowStatus>Overflow waiting to be moved: {0}</SGQ_OverflowStatus>
   <SGQ_RebalanceStatus>Stacks waiting to be split or merged: {0}</SGQ_RebalanceStatus>
   <SGQ_NoOverflow>No overflow in this storage group.</SGQ_NoOverflow>
   <SGQ_ZeroHelpTotal>0 means unlimited. Items inherit the nearest configured category, then the global default.</SGQ_ZeroHelpTotal>
-  <SGQ_ZeroHelpSimilar>0 uses each item's native stack limit. Items inherit the nearest configured category; total = per stack × N.</SGQ_ZeroHelpSimilar>
+  <SGQ_ZeroHelpSimilar>0 per stack uses the native limit; max stacks is at least 1. The two values inherit independently.</SGQ_ZeroHelpSimilar>
   <SGQ_NativeStackLimit>Native limit</SGQ_NativeStackLimit>
+  <SGQ_NativeStackLimitCompact>native</SGQ_NativeStackLimitCompact>
   <SGQ_GlobalDefault>Global default</SGQ_GlobalDefault>
   <SGQ_InheritedFrom>Inherited from {0}.</SGQ_InheritedFrom>
+  <SGQ_InheritedFieldTooltip>Inherited value: {0}. Source: {1}. Click to create an override for this field.</SGQ_InheritedFieldTooltip>
   <SGQ_CategoryQuotaTooltip>A category value is inherited separately by each descendant item; it is not one shared total for the category.</SGQ_CategoryQuotaTooltip>
+  <SGQ_CategoryTotalTooltip>A category quota is inherited separately by each descendant item; it is not one shared total for the category.</SGQ_CategoryTotalTooltip>
+  <SGQ_CategorySimilarTooltip>Per-stack and max-stack values are inherited separately by each descendant item; the category does not share one quantity or stack pool.</SGQ_CategorySimilarTooltip>
+  <SGQ_RemoveFieldOverrideTooltip>Remove the {0} override. It will use {1}, inherited from {2}.</SGQ_RemoveFieldOverrideTooltip>
   <SGQ_ExpandCategory>Expand {0}</SGQ_ExpandCategory>
   <SGQ_CollapseCategory>Collapse {0}</SGQ_CollapseCategory>
-  <SGQ_RetainedDisallowedItem>This item is no longer allowed by the vanilla storage filter. It remains listed because it has a quota override or is still stored in this group.</SGQ_RetainedDisallowedItem>
+  <SGQ_RetainedDisallowedItem>This item is no longer allowed by the vanilla storage filter. It remains listed because it has a quota or max-stack override, or is still stored in this group.</SGQ_RetainedDisallowedItem>
 </LanguageData>

@@ -102,6 +102,7 @@ namespace StorageGroupQuotas
             }
 
             int perStack = data.EffectivePerStackUpper(incoming.def);
+            int maxStacks = data.EffectiveMaxStacks(incoming.def);
             List<Thing> sameDefInCell = cell.GetThingList(map)
                 .Where(thing => !thing.Destroyed && thing.def == incoming.def)
                 .ToList();
@@ -114,7 +115,7 @@ namespace StorageGroupQuotas
             else
             {
                 int stacks = StackCount(destination, incoming.def);
-                cellRemaining = stacks < data.SimilarStackCount ? perStack : 0;
+                cellRemaining = stacks < maxStacks ? perStack : 0;
             }
 
             return Math.Min(totalRemaining, cellRemaining);
@@ -221,10 +222,11 @@ namespace StorageGroupQuotas
                     if (data.Mode == QuotaMode.SimilarStacks)
                     {
                         int perStack = data.EffectivePerStackUpper(defStacks.Key);
+                        int maxStacks = data.EffectiveMaxStacks(defStacks.Key);
                         for (int i = 0; i < orderedStacks.Count; i++)
                         {
                             Thing stack = orderedStacks[i];
-                            if ((stack.stackCount > perStack || i >= data.SimilarStackCount)
+                            if ((stack.stackCount > perStack || i >= maxStacks)
                                 && !result.Contains(stack))
                             {
                                 result.Add(stack);

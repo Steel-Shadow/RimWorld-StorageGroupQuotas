@@ -154,6 +154,7 @@ namespace StorageGroupQuotas
             }
 
             int perStack = data.EffectivePerStackUpper(thing.def);
+            int maxStacks = data.EffectiveMaxStacks(thing.def);
             int totalUpper = data.EffectiveTotalUpper(thing.def);
             if (QuotaUtility.Count(scope, thing.def) > totalUpper)
             {
@@ -186,7 +187,7 @@ namespace StorageGroupQuotas
             {
                 amountToMove = thing.stackCount - perStack;
             }
-            else if (sourceIndex >= data.SimilarStackCount)
+            else if (sourceIndex >= maxStacks)
             {
                 amountToMove = thing.stackCount;
             }
@@ -195,7 +196,7 @@ namespace StorageGroupQuotas
                 return null;
             }
 
-            int keepCount = Math.Min(data.SimilarStackCount, stacks.Count);
+            int keepCount = Math.Min(maxStacks, stacks.Count);
             Thing destinationStack = null;
             for (int i = 0; i < keepCount; i++)
             {
@@ -224,7 +225,7 @@ namespace StorageGroupQuotas
             }
             else
             {
-                if (stacks.Count >= data.SimilarStackCount)
+                if (stacks.Count >= maxStacks)
                 {
                     return null;
                 }
@@ -285,6 +286,7 @@ namespace StorageGroupQuotas
             }
 
             int perStack = data.EffectivePerStackUpper(thing.def);
+            int maxStacks = data.EffectiveMaxStacks(thing.def);
             if (thing.stackCount > perStack)
             {
                 return thing.stackCount - perStack;
@@ -295,7 +297,7 @@ namespace StorageGroupQuotas
                 .OrderByDescending(stack => stack.stackCount)
                 .ThenBy(stack => stack.thingIDNumber)
                 .ToList();
-            return stacks.IndexOf(thing) >= data.SimilarStackCount ? thing.stackCount : 0;
+            return stacks.IndexOf(thing) >= maxStacks ? thing.stackCount : 0;
         }
 
         private static bool TryFindOutsideFloorCell(Pawn pawn, Thing thing, out IntVec3 cell)

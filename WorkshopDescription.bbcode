@@ -4,12 +4,12 @@ Storage Group Quotas adds [b]per-item limits[/b] to vanilla storage groups. Link
 
 It is especially useful for ammo depots: instead of one huge pile that everyone may wait to reserve, you can keep several real stacks as separate pickup targets.
 
-The quota list uses a familiar category tree. Set one value for a broad category, refine it on a child category, and override only the exceptional items. The quota tree refreshes with the vanilla allowed-item list while open, and both windows share category folding.
+The quota list uses a familiar category tree. Set values for a broad category, refine them on a child category, and override only exceptional items. In Similar stacks mode, the per-stack limit and maximum stack count inherit independently. The quota tree refreshes with the vanilla allowed-item list while open, and both windows share category folding.
 
 [h2]Choose the mode you need[/h2]
 • [b]Entire storage count[/b] — Keep no more than X of each item type in this group. Best for medicine, meals, and anything where only the total matters.
 
-• [b]Similar stacks ×N[/b] — Keep at most X items per stack and at most N physical stacks. You can manage ammo for other mod like Combat Extended. For example, 25 × 4 gives a total capacity of 100 across up to four stacks.
+• [b]Similar stacks ×N[/b] — Keep at most X items per stack and at most N physical stacks. X and N can be inherited or overridden independently. This is useful for ammunition from mods such as Combat Extended; for example, 25 × 4 gives a total capacity of 100 across up to four stacks.
 
 With some hauling or reservation optimization mods, one physical stack may be reserved by only one pawn or job at a time. Multiple stacks provide separate reservation targets and can reduce queues when several weapons reload or are resupplied together.
 
@@ -23,9 +23,9 @@ With some hauling or reservation optimization mods, one physical stack may be re
 • In Similar stacks mode, haulers first try to split or consolidate stacks inside the group. Anything that cannot fit the selected layout is moved outside.
 
 [h2]How to use[/h2]
-Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set quotas for categories or individual items in the tree. The global default at the top is optional; unset children inherit the nearest configured parent.
+Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set values for categories or individual items in the tree. In Similar stacks mode, [b]Per-stack quota[/b] and [b]Max stacks[/b] are configured independently. The global defaults at the top are optional; unset children inherit the nearest configured parent for each field.
 
-[b]Important:[/b] a category value is calculated separately for every descendant item; it is not one shared total for the whole category. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 uses that item's current stack limit. The mod does not change ThingDef.stackLimit globally.
+[b]Important:[/b] category values are calculated separately for every descendant item. A category N gives each item its own N-stack allowance; it is not one shared stack pool. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 per stack uses that item's current stack limit, while max stacks is at least 1. The mod does not change ThingDef.stackLimit globally.
 
 [h2]Requirements and compatibility[/h2]
 • RimWorld 1.6
@@ -48,12 +48,12 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 
 它尤其适合弹药库：与其让所有小人等待同一个可能已被预留的大堆，不如保留多个真实堆栈，提供彼此独立的取用目标。
 
-配额列表采用熟悉的分类树：可以先给大类设置一个值，再在子类中细分，只覆盖少数例外物品。配额树在窗口打开期间会随原版允许物品列表刷新，两个窗口也会共享分类折叠状态。
+配额列表采用熟悉的分类树：可以先给大类设置数值，再在子类中细分，只覆盖少数例外物品。在“类似堆栈 ×N”模式中，每堆上限和最大堆数分别独立继承。配额树在窗口打开期间会随原版允许物品列表刷新，两个窗口也会共享分类折叠状态。
 
 [h2]选择需要的模式[/h2]
 • [b]整个仓库数量[/b] — 该组内每种物品最多保留 X 件。适合药品、食物等只关心总数的物品。
 
-• [b]类似堆栈 ×N[/b] — 每堆最多 X 件，最多保留 N 个真实堆栈。你可以用来管理来自其它 mod 的内容，例如 Combat Extended 的弹药。例如 25 × 4 表示最多四堆、总容量 100。
+• [b]类似堆栈 ×N[/b] — 每堆最多 X 件，最多保留 N 个真实堆栈；X 和 N 可分别继承或覆盖。它适合管理来自其他模组的内容，例如 Combat Extended 弹药；25 × 4 表示最多四堆、总容量 100。
 
 在部分搬运或预留优化模组下，一堆实体物品同时可能只能被一个小人或任务预留。多个堆栈能提供彼此独立的预留目标，减少多件武器同时换弹或补给时的排队。
 
@@ -67,9 +67,9 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 • 在“类似堆栈 ×N”模式中，搬运工会先尝试在组内拆分或归并；无法纳入所选布局的部分会移到组外。
 
 [h2]使用方法[/h2]
-选择物品架或储存区 → 点击[b]存储配额[/b] → 选择模式 → 在分类树中为分类或单个物品设置配额。窗口顶部的全局默认值是可选的继承基准；未设置的子项会继承最近的父级。
+选择物品架或储存区 → 点击[b]存储配额[/b] → 选择模式 → 在分类树中为分类或单个物品设置数值。在“类似堆栈 ×N”模式中，[b]每堆上限[/b]和[b]最大堆数[/b]分别设置。窗口顶部的全局默认值只是可选的继承基准；未设置的子项会为每个字段分别继承最近的父级。
 
-[b]请注意：[/b]分类值会由每种后代物品分别计算，并不是整个分类共用一个总额。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，0 表示使用该物品当前的堆叠上限。本模组不会全局修改 ThingDef.stackLimit。
+[b]请注意：[/b]分类值会由每种后代物品分别计算；分类 N 表示每种物品各自拥有 N 个堆位，并不是整个分类共享 N 堆。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，每堆上限为 0 时使用该物品当前的堆叠上限，最大堆数则至少为 1。本模组不会全局修改 ThingDef.stackLimit。
 
 [h2]需求与兼容[/h2]
 • RimWorld 1.6

@@ -6,9 +6,10 @@
   <SGQ_ModeTotal>整个仓库数量</SGQ_ModeTotal>
   <SGQ_ModeSimilar>类似堆栈 ×N</SGQ_ModeSimilar>
   <SGQ_DescriptionTotal>配额表示整个原版“存储组”内某种物品允许保留的总数量；超出部分会被搬出该组。</SGQ_DescriptionTotal>
-  <SGQ_DescriptionSimilar>配额表示单堆最大数量；组内最多保留 {0} 个相互独立的同类堆栈，总量超出“每堆 ×N”的部分会被搬出。</SGQ_DescriptionSimilar>
+  <SGQ_DescriptionSimilar>分别设置每种物品的单堆最大数量和最大堆数；两项都可沿分类树独立继承。总容量＝每堆上限 × 最大堆数。</SGQ_DescriptionSimilar>
   <SGQ_DefaultTotal>默认总数量</SGQ_DefaultTotal>
   <SGQ_DefaultPerStack>默认每堆数量</SGQ_DefaultPerStack>
+  <SGQ_DefaultMaxStacks>默认最大堆数</SGQ_DefaultMaxStacks>
   <SGQ_SimilarCount>类似堆栈 ×</SGQ_SimilarCount>
   <SGQ_Unlimited>不限</SGQ_Unlimited>
   <SGQ_Search>搜索物品……</SGQ_Search>
@@ -18,19 +19,29 @@
   <SGQ_CountAndStacks>{0} / {1}</SGQ_CountAndStacks>
   <SGQ_TotalQuota>总数量上限</SGQ_TotalQuota>
   <SGQ_PerStackQuota>每堆上限</SGQ_PerStackQuota>
+  <SGQ_MaxStacks>最大堆数</SGQ_MaxStacks>
+  <SGQ_TotalQuotaTooltip>该存储组内每种物品允许保留的最大总数量。</SGQ_TotalQuotaTooltip>
+  <SGQ_PerStackQuotaTooltip>每种物品单个实体堆栈允许保留的最大数量；设为 0 时使用该物品的原版堆叠上限。</SGQ_PerStackQuotaTooltip>
+  <SGQ_MaxStacksTooltip>每种物品允许保留的最大实体堆数；这是上限，并不保证主动凑满。</SGQ_MaxStacksTooltip>
   <SGQ_Inherit>继承值</SGQ_Inherit>
+  <SGQ_InheritCompact>继承：{0}</SGQ_InheritCompact>
   <SGQ_Override>单独设置</SGQ_Override>
   <SGQ_RemoveOverride>恢复继承</SGQ_RemoveOverride>
   <SGQ_OverflowStatus>等待移走的超量物品：{0}</SGQ_OverflowStatus>
   <SGQ_RebalanceStatus>等待拆分或合并的堆栈：{0}</SGQ_RebalanceStatus>
   <SGQ_NoOverflow>该存储组当前没有超量物品。</SGQ_NoOverflow>
   <SGQ_ZeroHelpTotal>0 表示不限；物品依次继承最近的已设置分类和全局默认值。</SGQ_ZeroHelpTotal>
-  <SGQ_ZeroHelpSimilar>0 使用各物品当前堆叠上限；物品继承最近的已设置分类；总容量＝每堆数量 × N。</SGQ_ZeroHelpSimilar>
+  <SGQ_ZeroHelpSimilar>每堆上限为 0 时使用物品的原版上限；最大堆数至少为 1。两项分别独立继承。</SGQ_ZeroHelpSimilar>
   <SGQ_NativeStackLimit>原版上限</SGQ_NativeStackLimit>
+  <SGQ_NativeStackLimitCompact>原版</SGQ_NativeStackLimitCompact>
   <SGQ_GlobalDefault>全局默认值</SGQ_GlobalDefault>
   <SGQ_InheritedFrom>继承自：{0}。</SGQ_InheritedFrom>
+  <SGQ_InheritedFieldTooltip>继承值：{0}；来源：{1}。点击可为当前字段建立单独设置。</SGQ_InheritedFieldTooltip>
   <SGQ_CategoryQuotaTooltip>分类值会由每种后代物品分别继承，并不是整个分类共用的总数。</SGQ_CategoryQuotaTooltip>
+  <SGQ_CategoryTotalTooltip>分类配额会由每种后代物品分别继承，并不是整个分类共用的总数。</SGQ_CategoryTotalTooltip>
+  <SGQ_CategorySimilarTooltip>每堆上限和最大堆数会由每种后代物品分别继承；整个分类并不共享同一份数量或堆数预算。</SGQ_CategorySimilarTooltip>
+  <SGQ_RemoveFieldOverrideTooltip>移除“{0}”的单独设置；之后将使用继承自“{2}”的 {1}。</SGQ_RemoveFieldOverrideTooltip>
   <SGQ_ExpandCategory>展开{0}</SGQ_ExpandCategory>
   <SGQ_CollapseCategory>折叠{0}</SGQ_CollapseCategory>
-  <SGQ_RetainedDisallowedItem>原版存储筛选已不允许该物品；由于它仍有单项配额或仍存放在该组内，因此继续显示。</SGQ_RetainedDisallowedItem>
+  <SGQ_RetainedDisallowedItem>原版存储筛选已不允许该物品；由于它仍有配额或最大堆数的单项设置，或仍存放在该组内，因此继续显示。</SGQ_RetainedDisallowedItem>
 </LanguageData>
