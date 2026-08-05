@@ -18,7 +18,7 @@ With some hauling or reservation optimization mods, one physical stack may be re
 
 • Existing excess is moved by normal hauling jobs — never deleted or teleported.
 
-• With Pick Up And Haul active, a pawn can collect several nearby total-count overflow stacks from the same source group into inventory up to carrying capacity. Every pickup and drop is rechecked against the live quota, so the part that should remain on the shelf is not taken.
+• With Hauler's Dream or Pick Up And Haul active, a pawn can collect several nearby total-count overflow stacks from the same source group into inventory. Every pickup and drop is rechecked against the live quota, so the part that should remain on the shelf is not taken. Hauler's Dream keeps its own smart-overload and Combat Extended weight/bulk rules.
 
 • Haulers first use valid storage outside the group. If none exists, they place the excess on a reachable floor cell outside the group.
 
@@ -36,7 +36,9 @@ Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set va
 
 • Works with Combat Extended ammunition; Combat Extended is not required
 
-• Optional Pick Up And Haul batch support for total-count overflow, with vanilla hauling as the safe fallback
+• Optional quota-aware batch support for Hauler's Dream and Pick Up And Haul, with vanilla hauling as the safe fallback
+
+• If both hauling mods are active, SGQ uses Hauler's Dream only; Hauler's Dream is designed to replace Pick Up And Haul
 
 • [b]Incompatible with Stack Gap[/b] — disable it first; its settings are not migrated
 
@@ -64,7 +66,7 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 
 • 已经超量的物品会由小人通过正常搬运移走，不会被删除或瞬移。
 
-• 启用 Pick Up And Haul 时，小人可以把同一来源存储组内附近的多堆“总量超额”物品按自身负重批量装入库存。每次拾取和卸货都会重新核对实时配额，不会顺手搬走货架上本应保留的部分。
+• 启用 Hauler's Dream 或 Pick Up And Haul 时，小人可以把同一来源存储组内附近的多堆“总量超额”物品按负重批量装入库存。每次拾取和卸货都会重新核对实时配额，不会顺手搬走物品架上本应保留的部分。Hauler's Dream 会继续使用自身的智能超载及 Combat Extended 重量／体积规则。
 
 • 搬运工会优先送到该组之外的合法仓储；没有可用仓储时，则放到该组外可到达的地面。
 
@@ -82,7 +84,9 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 
 • 可用于 Combat Extended 弹药，但不强制依赖 CE
 
-• 为 Pick Up And Haul 提供可选的总量超额批量搬运适配；无法使用时会安全回退原版搬运
+• 为 Hauler's Dream 与 Pick Up And Haul 提供可选的总量超额批量搬运适配；无法使用时会安全回退原版搬运
+
+• 若两个搬运模组同时启用，SGQ 只使用 Hauler's Dream；Hauler's Dream 本身用于替代 Pick Up And Haul
 
 • [b]与 Stack Gap 不兼容[/b] — 请先禁用；旧配置不会迁移
 

@@ -63,7 +63,7 @@ namespace StorageGroupQuotas
             {
                 if (isTotalCountOverflow)
                 {
-                    Job batchJob = TryMakePickUpAndHaulBatchJob(pawn, thing, amountToMoveOutside);
+                    Job batchJob = TryMakeInventoryBatchJob(pawn, thing, amountToMoveOutside);
                     if (batchJob != null)
                     {
                         return batchJob;
@@ -82,7 +82,7 @@ namespace StorageGroupQuotas
             {
                 if (isTotalCountOverflow)
                 {
-                    Job batchJob = TryMakePickUpAndHaulBatchJob(pawn, thing, amountToMoveOutside);
+                    Job batchJob = TryMakeInventoryBatchJob(pawn, thing, amountToMoveOutside);
                     if (batchJob != null)
                     {
                         return batchJob;
@@ -224,7 +224,7 @@ namespace StorageGroupQuotas
             }
 
             int quotaCapacity = QuotaUtility.RemainingForDestination(thing, cell, map);
-            int physicalCapacity = PickUpAndHaulCompatibility.CapacityAt(thing, cell, map);
+            int physicalCapacity = InventoryHaulingCompatibility.CapacityAt(thing, cell, map);
             return quotaCapacity == int.MaxValue
                 ? physicalCapacity
                 : Math.Min(physicalCapacity, quotaCapacity);
@@ -250,15 +250,15 @@ namespace StorageGroupQuotas
             return Math.Max(0, cell.GetItemStackSpaceLeftFor(map, thing.def));
         }
 
-        private static Job TryMakePickUpAndHaulBatchJob(
+        private static Job TryMakeInventoryBatchJob(
             Pawn pawn,
             Thing seed,
             int seedOverflow)
         {
             JobDef batchJobDef = DefDatabase<JobDef>.GetNamedSilentFail("SGQ_HaulQuotaOverflowBatch");
             if (batchJobDef == null
-                || !PickUpAndHaulCompatibility.CanUseBatchHauling(pawn, seed)
-                || CombatExtendedInventoryCompatibility.LimitCount(
+                || !InventoryHaulingCompatibility.CanUseBatchHauling(pawn, seed)
+                || InventoryHaulingCompatibility.LimitCount(
                     pawn,
                     seed,
                     Math.Min(seedOverflow, seed.stackCount)) <= 0)
@@ -293,7 +293,7 @@ namespace StorageGroupQuotas
             foreach (Thing candidate in candidates)
             {
                 if (!BasicChecks(pawn, candidate)
-                    || !PickUpAndHaulCompatibility.AllowsThing(candidate))
+                    || !InventoryHaulingCompatibility.AllowsThing(pawn, candidate))
                 {
                     continue;
                 }

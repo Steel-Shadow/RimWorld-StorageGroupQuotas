@@ -16,7 +16,7 @@ namespace StorageGroupQuotas
         {
             Harmony harmony = new Harmony("steelshadow.storagegroupquotas");
             harmony.PatchAll();
-            PickUpAndHaulCompatibility.Apply(harmony);
+            InventoryHaulingCompatibility.Apply(harmony);
 
             if (ModsConfig.IsActive("Andromeda.StackGap"))
             {
@@ -65,6 +65,8 @@ namespace StorageGroupQuotas
     }
 
     [HarmonyPatch(typeof(StoreUtility), "NoStorageBlockersIn", new[] { typeof(IntVec3), typeof(Map), typeof(Thing) })]
+    [HarmonyAfter(HaulersDreamCompatibility.HarmonyId)]
+    [HarmonyPriority(Priority.Last)]
     internal static class Patch_StoreUtility_NoStorageBlockersIn
     {
         private static void Postfix(IntVec3 c, Map map, Thing thing, ref bool __result)
@@ -164,6 +166,7 @@ namespace StorageGroupQuotas
         private static MethodInfo isAllowedRace;
         private static MethodInfo getHauledThings;
         private static MethodInfo registerHauledItem;
+        private static MethodInfo requestUnload;
         private static bool batchRuntimeDisabled;
         private static bool invocationWarningLogged;
 
@@ -177,6 +180,7 @@ namespace StorageGroupQuotas
 
             compType = AccessTools.TypeByName(CompTypeName);
             Type settingsType = AccessTools.TypeByName("PickUpAndHaul.Settings");
+            Type unloadCheckerType = AccessTools.TypeByName("PickUpAndHaul.PawnUnloadChecker");
             capacityAt = AccessTools.Method(workGiverType, "CapacityAt", new[]
             {
                 typeof(Thing), typeof(IntVec3), typeof(Map)
@@ -204,6 +208,12 @@ namespace StorageGroupQuotas
                 {
                     typeof(Thing)
                 });
+            requestUnload = unloadCheckerType == null
+                ? null
+                : AccessTools.Method(unloadCheckerType, "CheckIfPawnShouldUnloadInventory", new[]
+                {
+                    typeof(Pawn), typeof(bool)
+                });
 
             if (capacityAt == null)
             {
@@ -214,11 +224,9 @@ namespace StorageGroupQuotas
                 typeof(PickUpAndHaulCompatibility), nameof(CapacityAtPostfix)));
             Log.Message("[Storage Group Quotas] Pick Up And Haul capacity compatibility enabled.");
 
-            if (BatchApiAvailable)
-            {
-                Log.Message("[Storage Group Quotas] Pick Up And Haul quota-overflow batch hauling enabled.");
-            }
         }
+
+        internal static bool IsPresent => workGiverType != null;
 
         private static bool BatchApiAvailable => !batchRuntimeDisabled
             && workGiverType != null
@@ -228,7 +236,8 @@ namespace StorageGroupQuotas
             && overAllowedGearCapacity != null
             && isAllowedRace != null
             && getHauledThings != null
-            && registerHauledItem != null;
+            && registerHauledItem != null
+            && requestUnload != null;
 
         internal static bool CanUseBatchHauling(Pawn pawn, Thing thing)
         {
@@ -328,6 +337,40 @@ namespace StorageGroupQuotas
             catch (Exception exception)
             {
                 LogInvocationWarning(exception);
+                if (pawn.inventory != null)
+                {
+                    pawn.inventory.UnloadEverything = true;
+                }
+            }
+        }
+
+        internal static void RequestUnload(Pawn pawn)
+        {
+            if (pawn == null)
+            {
+                return;
+            }
+
+            if (requestUnload == null)
+            {
+                if (pawn.inventory != null)
+                {
+                    pawn.inventory.UnloadEverything = true;
+                }
+                return;
+            }
+
+            try
+            {
+                requestUnload.Invoke(null, new object[] { pawn, true });
+            }
+            catch (Exception exception)
+            {
+                LogInvocationWarning(exception);
+                if (pawn.inventory != null)
+                {
+                    pawn.inventory.UnloadEverything = true;
+                }
             }
         }
 
@@ -410,6 +453,15 @@ namespace StorageGroupQuotas
         private static Type compInventoryType;
         private static MethodInfo canFitInInventory;
         private static MethodInfo updateInventory;
+
+        internal static bool IsActive
+        {
+            get
+            {
+                EnsureInitialized();
+                return active;
+            }
+        }
 
         internal static bool CanUseBatchHauling(Pawn pawn)
         {

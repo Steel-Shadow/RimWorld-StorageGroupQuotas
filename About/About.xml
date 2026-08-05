@@ -17,6 +17,7 @@
   </modDependencies>
   <loadAfter>
     <li>brrainz.harmony</li>
+    <li>giwaffed.HaulersDream</li>
     <li>Mehni.PickUpAndHaul</li>
   </loadAfter>
   <incompatibleWith>
@@ -28,7 +29,7 @@ The quota window uses a category tree. Unset items and child categories inherit 
 
 Use Entire storage count when only the total matters, or Similar stacks ×N to keep several physical stacks as separate reservation targets for ammo and urgent supplies. X and N can be configured independently by category or item. Incoming hauling respects the remaining quota. Existing excess is moved outside the group through hauling work, never deleted.
 
-Requires Harmony. Combat Extended ammunition is supported without a hard dependency. When Pick Up And Haul is active, nearby total-count overflow from one source group can be collected into pawn inventory up to carry capacity and unloaded with quota checks; vanilla hauling remains the fallback. Incompatible with Stack Gap.
+Requires Harmony. Combat Extended ammunition is supported without a hard dependency. Hauler's Dream and Pick Up And Haul are optional: when either is active, nearby total-count overflow from one source group can be collected into pawn inventory up to the selected hauling mod's carry limit and unloaded with live quota checks. Hauler's Dream smart overload and CE weight/bulk rules are preserved; vanilla hauling remains the fallback. Incompatible with Stack Gap.
 
 为整个原版存储组设置按物品分别计算的数量上限；链接的物品架共享同一份配额。
 
@@ -36,5 +37,5 @@ Requires Harmony. Combat Extended ammunition is supported without a hard depende
 
 只关心总量时使用“整个仓库数量”；需要为弹药或紧急补给保留多个独立预留目标时，使用“类似堆栈 ×N”。X 和 N 都可以按分类或物品分别设置。新的入库搬运会遵守剩余配额，已有超量物品会通过搬运工作移出该组，不会被删除。
 
-需要 Harmony。支持 Combat Extended 弹药但不强制依赖 CE；启用 Pick Up And Haul 时，小人可把同一来源存储组中附近的总量超额物品按负重批量装入库存，并在卸货时重新核对配额；无法使用该兼容路径时仍回退原版搬运。与 Stack Gap 不兼容。</description>
+需要 Harmony。支持 Combat Extended 弹药但不强制依赖 CE。Hauler's Dream 与 Pick Up And Haul 均为可选适配；启用其中之一时，小人可把同一来源存储组中附近的总量超额物品按所选搬运模组的负重规则批量装入库存，并在卸货时重新核对实时配额。Hauler's Dream 的智能超载及 CE 重量／体积规则会被保留；无法使用兼容路径时仍回退原版搬运。与 Stack Gap 不兼容。</description>
 </ModMetaData>

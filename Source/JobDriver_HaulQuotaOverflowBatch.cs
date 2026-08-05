@@ -43,6 +43,8 @@ namespace StorageGroupQuotas
             }
 
             rejectedDestinationCells = new HashSet<IntVec3>();
+            AddFinishAction(condition =>
+                InventoryHaulingCompatibility.NotifyJobFinished(pawn, hauledThings));
 
             Toil extractNextSource = Toils_JobTransforms.ExtractNextTargetFromQueue(
                 TargetIndex.A,
@@ -68,7 +70,7 @@ namespace StorageGroupQuotas
                     Thing sourceThing = TargetThingA;
                     if (!WorkGiver_MoveQuotaOverflow.BasicChecks(pawn, sourceThing)
                         || QuotaUtility.OverflowCount(sourceThing) <= 0
-                        || CombatExtendedInventoryCompatibility.LimitCount(pawn, sourceThing, 1) <= 0
+                        || InventoryHaulingCompatibility.LimitCount(pawn, sourceThing, 1) <= 0
                         || !EnsureSourceReservation(sourceThing))
                     {
                         ReleaseReservation(job.targetA);
@@ -96,7 +98,7 @@ namespace StorageGroupQuotas
 
                     int liveOverflow = QuotaUtility.OverflowCount(sourceThing);
                     int countToTake = Math.Min(Math.Min(job.count, liveOverflow), sourceThing.stackCount);
-                    countToTake = CombatExtendedInventoryCompatibility.LimitCount(
+                    countToTake = InventoryHaulingCompatibility.LimitCount(
                         pawn,
                         sourceThing,
                         countToTake);
@@ -125,7 +127,7 @@ namespace StorageGroupQuotas
                     }
 
                     CombatExtendedInventoryCompatibility.NotifyInventoryChanged(pawn);
-                    if (!PickUpAndHaulCompatibility.RegisterHauledItem(pawn, splitThing))
+                    if (!InventoryHaulingCompatibility.RegisterHauledItem(pawn, splitThing))
                     {
                         RestoreToSource(splitThing, sourceCell);
                         ReleaseReservation(job.targetA);
@@ -220,7 +222,7 @@ namespace StorageGroupQuotas
                         rejectedDestinationCells.Clear();
                         if (!pawn.inventory.innerContainer.Contains(carriedThing))
                         {
-                            PickUpAndHaulCompatibility.UnregisterHauledItem(pawn, carriedThing);
+                            InventoryHaulingCompatibility.UnregisterHauledItem(pawn, carriedThing);
                             hauledThings.Remove(carriedThing);
                             lastDestinationThing = null;
                         }
@@ -250,7 +252,7 @@ namespace StorageGroupQuotas
                     return thing;
                 }
 
-                PickUpAndHaulCompatibility.UnregisterHauledItem(pawn, thing);
+                InventoryHaulingCompatibility.UnregisterHauledItem(pawn, thing);
                 hauledThings.RemoveAt(0);
             }
 
@@ -347,11 +349,11 @@ namespace StorageGroupQuotas
             CombatExtendedInventoryCompatibility.NotifyInventoryChanged(pawn);
             if (dropped || !pawn.inventory.innerContainer.Contains(thing))
             {
-                PickUpAndHaulCompatibility.UnregisterHauledItem(pawn, thing);
+                InventoryHaulingCompatibility.UnregisterHauledItem(pawn, thing);
                 return;
             }
 
-            if (!PickUpAndHaulCompatibility.RegisterHauledItem(pawn, thing))
+            if (!InventoryHaulingCompatibility.RegisterHauledItem(pawn, thing))
             {
                 pawn.inventory.UnloadEverything = true;
             }

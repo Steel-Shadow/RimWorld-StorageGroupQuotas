@@ -68,7 +68,7 @@ Set the ammunition category to **25 per stack** and **Max stacks 4**:
 - All linked shelves in the same vanilla `StorageGroup` share one quota.
 - Each item definition is counted independently.
 - New hauling jobs are capped by the group's remaining capacity.
-- Existing excess is moved by hauling work; it is never deleted or teleported. With Pick Up And Haul active, total-count overflow can be collected from several nearby stacks in the same source group into pawn inventory up to carrying capacity. Pickup and unloading both recheck the live quota, and the vanilla single-stack job remains the fallback.
+- Existing excess is moved by hauling work; it is never deleted or teleported. With Hauler's Dream or Pick Up And Haul active, total-count overflow can be collected from several nearby stacks in the same source group into pawn inventory. Pickup and unloading both recheck the live quota, and the vanilla single-stack job remains the fallback.
 - Haulers first look for valid storage outside the source group. If none exists, they look for a reachable non-storage floor cell outside the group.
 - Similar-stacks mode first tries to split or consolidate stacks inside the group. If the selected layout cannot be completed inside the group, the unresolved part may be moved outside.
 - The mod does not change `ThingDef.stackLimit` globally.
@@ -87,8 +87,10 @@ A configured per-stack value never raises a stack above its current `ThingDef.st
 - RimWorld 1.6
 - **Harmony is required.**
 - Combat Extended is not required, but CE ammunition works because quotas apply to ordinary storable item definitions.
-- Pick Up And Haul optionally enables quota-aware batch removal of total-count overflow. It never becomes a hard dependency: unsupported pawns, occupied PUAH haul inventories, missing APIs, and layout-only work safely use the vanilla hauling path.
-- When Combat Extended is active, the batch driver queries CE's current weight and bulk capacity before each pickup; CE remains optional and is accessed without a compile-time assembly dependency.
+- Hauler's Dream and Pick Up And Haul optionally enable quota-aware batch removal of total-count overflow. Neither becomes a hard dependency: unsupported pawns, occupied hauling inventories, missing APIs, and layout-only work safely use the vanilla hauling path.
+- The Hauler's Dream path keeps HD's eligibility settings, smart-overload ceiling, and Combat Extended weight/bulk calculation. Its consolidated unload is clamped both when a destination is chosen and again on arrival, so normal HD cargo also cannot overfill quota-managed storage.
+- The Pick Up And Haul path continues to query CE's current weight and bulk capacity before every pickup. CE remains optional and is accessed without a compile-time assembly dependency.
+- If Hauler's Dream and Pick Up And Haul are both active, SGQ registers cargo only with Hauler's Dream. HD is designed to replace PUAH, so disabling PUAH is recommended for that load order.
 - **Stack Gap (`Andromeda.StackGap`) is incompatible.** Disable it before enabling this mod. Its settings are not migrated.
 
 ### Installation outside Steam Workshop
@@ -131,9 +133,10 @@ Yes. Capacity is based on currently spawned contents; several already-created jo
 | `Source/QuotaTreeModel.cs` | Pruned vanilla-style category tree, shared mask-8 expansion state, and hierarchical search results. |
 | `Source/QuotaDataStore.cs` | Runtime attachment of quota data to vanilla `StorageSettings`. |
 | `Source/QuotaUtility.cs` | Scope resolution, counting, effective capacities, overflow discovery, and scan caching. |
-| `Source/HarmonyPatches.cs` | Vanilla storage/UI patches and optional Pick Up And Haul integration. |
+| `Source/HarmonyPatches.cs` | Vanilla storage/UI patches, optional Pick Up And Haul integration, and the Combat Extended inventory adapter. |
+| `Source/InventoryHaulingCompatibility.cs` | Single-backend selection plus optional Hauler's Dream batching, tracking, unload guards, and quota-cell reservation restoration. |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | Ordinary hauling jobs for exact overflow removal and similar-stack rebalancing. |
-| `Source/JobDriver_HaulQuotaOverflowBatch.cs` | Optional PUAH-style inventory batch pickup and quota-checked unloading for total-count overflow. |
+| `Source/JobDriver_HaulQuotaOverflowBatch.cs` | Optional inventory batch pickup and quota-checked unloading for total-count overflow. |
 | `Source/Window_StorageQuotas.cs` | Quota configuration window in the vanilla Storage tab. |
 | `Source/packages.lock.json` | Locked compile-time reference packages for reproducible builds. |
 | `About/About.xml` | Package identity, supported game version, dependencies, load-order rules, and incompatibilities. |
@@ -144,7 +147,7 @@ Yes. Capacity is based on currently spawned contents; several already-created jo
 | `WorkshopDescription.bbcode` | Canonical player-facing Steam Workshop description. |
 | `.github/workflows/build-release.yml` | Locked CI build, installable archive, and rolling prerelease publication. |
 
-The mod has no `GameComponent`, `MapComponent`, or global `ModSettings`. Outside the optional batch path, overflow and all stack-layout work use vanilla `JobDefOf.HaulToCell`. One custom `JobDriver` is used only for Pick Up And Haul batch hauling; quota data still lives with the relevant vanilla `StorageSettings`.
+The mod has no `GameComponent`, `MapComponent`, or global `ModSettings`. Outside the optional batch path, overflow and all stack-layout work use vanilla `JobDefOf.HaulToCell`. One custom `JobDriver` is used only when a supported inventory-hauling backend owns the batch; quota data still lives with the relevant vanilla `StorageSettings`.
 
 #### Dependencies and automatic sorting
 
@@ -153,6 +156,7 @@ The mod has no `GameComponent`, `MapComponent`, or global `ModSettings`. Outside
 | Relationship | Metadata | Meaning |
 | --- | --- | --- |
 | Harmony | `modDependencies` and `loadAfter` | Hard dependency and explicit sort edge. Both are kept because mod managers may be configured not to infer load order from dependency declarations. |
+| Hauler's Dream | `loadAfter` only | Optional integration: sort after `giwaffed.HaulersDream` so SGQ's final quota guards wrap HD's haul-to-stack and inventory-unload behavior. |
 | Pick Up And Haul | `loadAfter` only | Optional integration: sort after it when installed, without making it required. |
 | Stack Gap | `incompatibleWith` | Report a conflict instead of trying to solve incompatible storage-capacity patches through ordering. |
 | Combat Extended | No dependency or ordering rule | CE ammunition works as ordinary storable items. If CE is present, the optional batch path discovers `CompInventory` by reflection and honors its weight/bulk result; there is still no compile-time CE assembly dependency or patch-order edge. |
@@ -198,8 +202,15 @@ Both quantity and max-stack budgets are per exact `ThingDef`, not per category-w
 | `HaulAIUtility.HaulToCellStorageJob` postfix | Cap `Job.count` to remaining capacity and disable opportunistic duplicates. |
 | `ITab_Storage.FillTab` postfix | Add the **Quotas** button to the vanilla Storage tab. |
 | `PickUpAndHaul.WorkGiver_HaulToInventory.CapacityAt` postfix | Optionally cap Pick Up And Haul's destination capacity through reflection. |
+| `HaulersDream.JobDriver_UnloadHauledInventory.FindTargetOrDrop` dynamic postfix | Clamp HD's planned inventory transfer to the destination's current quota. |
+| `Toils_Haul.PlaceHauledThingInCell` postfix after HD | Recheck the quota on arrival and return only the excess part to HD-tracked inventory before placement. |
+| `JobDriver_HaulToCell.TryMakePreToilReservations` postfix after HD | Restore destination-cell reservation when HD's Haul to Stack targets quota-managed storage. |
 
-The Pick Up And Haul integration is skipped if its expected type and public method signatures are unavailable. SGQ does not reuse PUAH's `HaulToInventory` driver: that driver may replace an exact partial count in its CE branch, schedules a vanilla job for the source remainder, and later chooses a fresh unload destination. Instead, SGQ registers only its own split items in PUAH's hauled-item comp so interrupted work still has PUAH's inventory safety net.
+`InventoryHaulingCompatibility` chooses one backend for the whole session: Hauler's Dream first, otherwise Pick Up And Haul, otherwise none. SGQ never registers one stack with both trackers. Missing or changed reflection APIs disable only batch hauling and fail closed to vanilla `HaulToCell`.
+
+SGQ does not reuse either hauling mod's bulk job driver because neither understands SGQ's exact live overflow or source-group exclusion rules. It keeps its own driver, registers only the exact split-off excess in the selected mod's hauled-item comp, and asks that mod to unload any cargo left after an interruption. With Hauler's Dream, `MassClampedTake` supplies HD's smart overload and CE limits, while HD's own issue-#115 comparison is preserved so a very bulky CE item stays a faster hand haul when its inventory fit is smaller than its armful.
+
+For ordinary Hauler's Dream cargo entering quota storage, the dynamic `FindTargetOrDrop` wrapper reduces HD's private `countToDrop` before the inventory-to-hands transfer. The final `PlaceHauledThingInCell` wrapper recomputes quota capacity after the walk; if capacity shrank, only the allowed part remains in the hands and the excess is returned without merging, re-registered through HD's public comp API, and handled on a later unload pass. The reservation postfix restores coordination only for quota-managed destinations, leaving HD's ordinary Haul to Stack behavior unchanged elsewhere.
 
 For a batch pickup, `targetQueueA` and `countQueue` hold only current total-count overflow from one source scope. Before every split, the driver recomputes `OverflowCount` and applies either vanilla mass capacity or CE weight/bulk capacity. It never creates a follow-up job for the retained source remainder. During unloading, it excludes the source scope, reserves a destination, walks there, then recomputes both group quota and physical cell capacity in the drop toil itself. The exact allowed count is dropped directly from inventory; any remainder loops to another destination. This arrival-time recheck is what prevents two pawns targeting different cells in one destination group from both trusting the same stale planned capacity.
 
@@ -216,16 +227,16 @@ Candidate lists are cached per map for 30 game ticks. `NotifySettingsChanged()` 
 3. Falls back to a reachable, reservable, standable non-storage floor cell within radius 40, avoiding fire, blockers, forbidden cells, and growing zones when applicable.
 4. For layout-only work, first tries to merge into the fullest compatible retained stack or create a new stack on a valid group cell while fewer than that item's effective N stacks exist.
 5. If the layout still cannot be resolved internally, routes the unresolved part through the outside-storage/floor fallback.
-6. When Pick Up And Haul's supported API is available, total-count overflow may instead be batched with nearby overflow stacks from the same source group. Layout-only work deliberately remains on the vanilla path.
+6. When Hauler's Dream or Pick Up And Haul exposes its supported API, total-count overflow may instead be batched with nearby overflow stacks from the same source group. Layout-only work deliberately remains on the vanilla path.
 
 The registered work giver belongs to `Hauling`, has `priorityInType` 20, requires Manipulation, and assigns a priority of `1000 + exact overflow`. Forbidden, burning, unreachable, unreservable, or non-haulable items are skipped.
 
 #### Known limitations
 
 - Only RimWorld 1.6 is declared and tested.
-- In-flight hauling jobs do not reserve quota capacity, so temporary overshoot is possible.
-- The Pick Up And Haul batch collects at most 64 overflow source stacks within 12 cells of the selected stack per job. Additional excess is handled by later jobs.
-- A batch starts only when the pawn's PUAH hauled-item set is empty. If PUAH, its pawn comp, or the optional CE inventory API does not match the expected public signatures, SGQ fails closed to vanilla `HaulToCell`.
+- In-flight hauling jobs do not reserve a group-wide numeric quota budget. Quota-managed `HaulToCell` jobs do reserve their destination cell, and HD inventory unloading is rechecked on arrival, but jobs aimed at different cells can still briefly race; later cleanup handles any path that bypasses those guards.
+- An inventory batch collects at most 64 overflow source stacks within 12 cells of the selected stack per job. Additional excess is handled by later jobs.
+- A batch starts only when the selected backend's hauled-item set is empty. If HD/PUAH, its pawn comp, or an optional inventory API does not match the expected signatures, SGQ fails closed to vanilla `HaulToCell`.
 - Fully custom storage or hauling code that bypasses the patched vanilla methods may ignore incoming limits; the cleanup work giver can still handle spawned excess later.
 - Similar-stack budgets use each `ThingDef`'s effective inherited N; quality/material/hit-point variants do not each receive a separate N-stack allowance.
 - Internal rebalancing needs compatible stacks or free valid cells. Otherwise layout-only excess may be moved outside.
@@ -318,7 +329,7 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 - 同一个原版 `StorageGroup` 中链接的物品架共享一份配额。
 - 每个物品定义分别统计数量。
 - 新的入库搬运不会超过该组当前的剩余容量。
-- 已有超量物品通过搬运工作移走，不会被删除或瞬移。启用 Pick Up And Haul 时，小人可把同一来源存储组内附近多堆“总量超额”物品按负重批量装入库存；拾取和卸货都会重新核对实时配额，无法使用兼容路径时则回退为原版单堆搬运。
+- 已有超量物品通过搬运工作移走，不会被删除或瞬移。启用 Hauler's Dream 或 Pick Up And Haul 时，小人可把同一来源存储组内附近多堆“总量超额”物品按负重批量装入库存；拾取和卸货都会重新核对实时配额，无法使用兼容路径时则回退为原版单堆搬运。
 - 搬运工优先寻找来源组之外的合法仓储；找不到时，再寻找组外可到达的非仓储地面。
 - “类似堆栈 ×N”会优先在组内拆分或归并；如果所选布局无法在组内完成，未解决部分可能被搬到组外。
 - 本模组不会全局修改 `ThingDef.stackLimit`。
@@ -337,8 +348,10 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 - RimWorld 1.6
 - **必须加载 Harmony。**
 - 不强制依赖 Combat Extended，但 CE 弹药会作为普通可存储物品受到配额控制。
-- Pick Up And Haul 可选启用遵守配额的“总量超额”批量移出；它不是硬依赖。小人不受 PUAH 支持、PUAH 搬运库存已有物品、接口缺失或任务只是堆栈布局整理时，都会安全使用原版搬运路径。
-- 启用 Combat Extended 时，批量驱动会在每次拾取前读取 CE 当前的重量与体积容量；CE 仍是可选模组，SGQ 不在编译时依赖其程序集。
+- Hauler's Dream 与 Pick Up And Haul 都可以启用遵守配额的“总量超额”批量移出，且都不是硬依赖。小人不受所选后端支持、搬运库存已有物品、接口缺失或任务只是堆栈布局整理时，都会安全使用原版搬运路径。
+- Hauler's Dream 路径会保留 HD 的小人资格设置、智能超载上限，以及 Combat Extended 重量／体积算法。HD 选择卸货目标时会裁剪一次，到达后还会再次核对，因此普通 HD 货物也不能把受配额管理的存储组塞过量。
+- Pick Up And Haul 路径仍会在每次拾取前读取 CE 当前的重量与体积容量。CE 仍是可选模组，SGQ 不在编译时依赖其程序集。
+- 若 Hauler's Dream 与 Pick Up And Haul 同时启用，SGQ 只把货物登记给 Hauler's Dream。HD 本身用于替代 PUAH，因此建议在这种加载列表中禁用 PUAH。
 - **与 Stack Gap（`Andromeda.StackGap`）不兼容。**启用本模组前请将其禁用；旧设置不会迁移。
 
 ### 非 Steam 创意工坊安装
@@ -381,9 +394,10 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `Source/QuotaTreeModel.cs` | 裁剪后的原版风格分类树、共享的 mask-8 展开状态与分层搜索结果。 |
 | `Source/QuotaDataStore.cs` | 在运行时把配额数据附着到原版 `StorageSettings`。 |
 | `Source/QuotaUtility.cs` | 范围解析、计数、有效容量、超量发现和扫描缓存。 |
-| `Source/HarmonyPatches.cs` | 原版仓储／界面补丁及 Pick Up And Haul 可选适配。 |
+| `Source/HarmonyPatches.cs` | 原版仓储／界面补丁、Pick Up And Haul 可选适配及 Combat Extended 库存适配器。 |
+| `Source/InventoryHaulingCompatibility.cs` | 单一库存后端选择，以及 Hauler's Dream 批量搬运、登记、卸货保护和配额目标格预留恢复。 |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | 用正常搬运工作准确移走超量物品并整理类似堆栈。 |
-| `Source/JobDriver_HaulQuotaOverflowBatch.cs` | 为总量超额提供可选的 PUAH 风格库存批量拾取，并在卸货时重新核对配额。 |
+| `Source/JobDriver_HaulQuotaOverflowBatch.cs` | 为总量超额提供可选的库存批量拾取，并在卸货时重新核对配额。 |
 | `Source/Window_StorageQuotas.cs` | 原版“存储”标签中的配额设置窗口。 |
 | `Source/packages.lock.json` | 锁定用于编译的引用包，保证可复现构建。 |
 | `About/About.xml` | 包标识、支持的游戏版本、依赖、加载顺序和冲突声明。 |
@@ -394,7 +408,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `WorkshopDescription.bbcode` | Steam 创意工坊玩家向简介的规范源文件。 |
 | `.github/workflows/build-release.yml` | 锁定依赖的 CI 构建、安装包与滚动预发布流程。 |
 
-本模组不引入 `GameComponent`、`MapComponent` 或全局 `ModSettings`。除可选批量路径外，超量搬运和所有堆栈布局整理仍使用原版 `JobDefOf.HaulToCell`；只有 Pick Up And Haul 批量搬运使用一个自定义 `JobDriver`。配额数据仍跟随对应的原版 `StorageSettings`。
+本模组不引入 `GameComponent`、`MapComponent` 或全局 `ModSettings`。除可选批量路径外，超量搬运和所有堆栈布局整理仍使用原版 `JobDefOf.HaulToCell`；只有受支持的库存搬运后端接管批量任务时才使用一个自定义 `JobDriver`。配额数据仍跟随对应的原版 `StorageSettings`。
 
 #### 依赖与自动排序
 
@@ -403,6 +417,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | 关系 | 元数据声明 | 含义 |
 | --- | --- | --- |
 | Harmony | `modDependencies` 与 `loadAfter` | 硬依赖并建立显式排序边。两者同时保留，因为模组管理器可能被设置为不从依赖声明推断加载顺序。 |
+| Hauler's Dream | 仅 `loadAfter` | 可选适配：在 `giwaffed.HaulersDream` 之后加载，让 SGQ 的最终配额保护包住 HD 的“搬到已有堆栈”与库存卸货行为。 |
 | Pick Up And Haul | 仅 `loadAfter` | 可选适配：安装时排在它后面，但不会把它变成必需依赖。 |
 | Stack Gap | `incompatibleWith` | 直接报告冲突，而不是试图用排序解决互不兼容的仓储容量补丁。 |
 | Combat Extended | 不声明依赖或顺序 | CE 弹药按普通可存储物品处理；启用 CE 时，可选批量路径会通过反射发现 `CompInventory` 并遵守其重量／体积结果，仍不在编译时依赖 CE 程序集，也不建立补丁顺序边。 |
@@ -448,8 +463,15 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `HaulAIUtility.HaulToCellStorageJob` postfix | 把 `Job.count` 限制到剩余容量并关闭机会性重复搬运。 |
 | `ITab_Storage.FillTab` postfix | 在原版“存储”标签加入“存储配额”按钮。 |
 | `PickUpAndHaul.WorkGiver_HaulToInventory.CapacityAt` postfix | 通过反射可选限制 Pick Up And Haul 的目标容量。 |
+| `HaulersDream.JobDriver_UnloadHauledInventory.FindTargetOrDrop` 动态 postfix | 在 HD 把库存物品转到手中前，先按目标的实时配额裁剪计划卸货量。 |
+| HD 之后的 `Toils_Haul.PlaceHauledThingInCell` postfix | 到达目标后再次核对，把超出的部分退回 HD 登记的库存，只放下允许数量。 |
+| HD 之后的 `JobDriver_HaulToCell.TryMakePreToilReservations` postfix | 当 HD 的“搬到已有堆栈”指向受配额管理的仓储时，恢复目标格预留。 |
 
-找不到 Pick Up And Haul 预期类型与公开方法签名时，兼容路径会跳过。SGQ 不直接复用 PUAH 的 `HaulToInventory` 驱动：该驱动的 CE 分支可能覆盖精确部分数量，还会为来源余量追加原版任务，并在最后重新选择卸货目标。SGQ 只把自己拆出的物品登记到 PUAH 的搬运记录中，让中断任务仍能获得 PUAH 的库存安全兜底。
+`InventoryHaulingCompatibility` 会在整个游戏会话中只选择一个后端：优先 Hauler's Dream，其次 Pick Up And Haul，否则不使用库存批量路径。SGQ 不会把同一堆物品同时登记给两个卸货系统；反射接口缺失或发生变化时，只关闭批量路径并安全回退到原版 `HaulToCell`。
+
+SGQ 不直接复用两个搬运模组各自的批量驱动，因为它们都不了解 SGQ 的精确实时超量和“不得送回来源存储组”语义。SGQ 保留自己的驱动，只把准确拆出的超量部分登记到所选模组的搬运记录中；任务中断后，再要求该模组安全卸掉仍留在库存里的货物。Hauler's Dream 路径使用其 `MassClampedTake` 保留智能超载和 CE 限制，并保留 HD 对 issue #115 的比较：如果某种超高体积 CE 物品放进库存反而比手持搬得少，就继续使用更快的原版手持搬运。
+
+对于普通 Hauler's Dream 货物进入配额仓储的情况，动态 `FindTargetOrDrop` 包装会在库存转手前降低 HD 的私有 `countToDrop`。最终的 `PlaceHauledThingInCell` 包装会在走到目标后重新计算配额；如果途中容量变小，只让允许部分留在手中，超出部分以禁止合并的方式退回库存，再通过 HD 的正式 Comp 接口重新登记，等待后续卸货。预留补丁只为受配额管理的目标恢复协调，不改变其他仓储上 HD 原有的“搬到已有堆栈”行为。
 
 批量任务的 `targetQueueA` 与 `countQueue` 只保存同一来源范围中当前属于“总量超额”的物品。每次拆堆前，驱动都会重新计算 `OverflowCount`，并应用原版负重或 CE 重量／体积容量；不会为来源中本应保留的余量追加任务。卸货时会排除来源范围，先预留目标并走到现场，再在放置动作中重新计算目标组配额和格位物理容量，只从库存放下准确允许的数量；余量继续寻找下一个目标。到达后的实时重算也避免两个小人分别前往同组不同格时共同信任一份过期规划容量。
 
@@ -466,16 +488,16 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 3. 找不到仓储时，在半径 40 内寻找可到达、可预留、可站立的非仓储地面，并避开火灾、阻挡、禁用格，以及不适合相应物品的种植区。
 4. 对仅有布局问题的物品，优先合并到仍保留且最满的兼容堆；当前堆数小于该物品的有效 N 时，也可以在组内合法格位建立新堆。
 5. 组内仍无法解决时，把未解决部分转入组外仓储／地面后备流程。
-6. Pick Up And Haul 的受支持接口可用时，“总量超额”还可以与同一来源组附近的其他超量堆一起批量搬运；仅有布局问题的任务仍刻意使用原版路径。
+6. Hauler's Dream 或 Pick Up And Haul 的受支持接口可用时，“总量超额”还可以与同一来源组附近的其他超量堆一起批量搬运；仅有布局问题的任务仍刻意使用原版路径。
 
 注册的 WorkGiver 属于 `Hauling`，`priorityInType` 为 20，需要 Manipulation，并使用 `1000 + 准确超量数` 作为工作优先值。禁用、燃烧、不可达、无法预留或不可搬运的物品会被跳过。
 
 #### 已知限制
 
 - 仅声明并测试 RimWorld 1.6。
-- 正在路上的搬运任务不会预留配额容量，因此可能短暂超额。
-- Pick Up And Haul 批量任务每次最多收集所选堆 12 格范围内的 64 个超量来源堆；其余超量由后续任务继续处理。
-- 只有当小人的 PUAH 搬运记录为空时才会开始 SGQ 批量任务。PUAH、对应小人 Comp 或可选 CE 库存接口不符合预期公开签名时，SGQ 会关闭该路径并回退到原版 `HaulToCell`。
+- 正在路上的任务不会预留整个存储组的“数值配额预算”。受配额管理的 `HaulToCell` 会预留目标格，HD 库存卸货也会在到达时复核；但指向不同格位的任务仍可能竞争同一组容量，完全绕过保护的路径产生的短暂超额会由后续整理处理。
+- 库存批量任务每次最多收集所选堆 12 格范围内的 64 个超量来源堆；其余超量由后续任务继续处理。
+- 只有当所选后端的小人搬运记录为空时才会开始 SGQ 批量任务。HD／PUAH、对应小人 Comp 或可选库存接口不符合预期签名时，SGQ 会关闭该路径并回退到原版 `HaulToCell`。
 - 完全绕过这些原版方法的自定义仓储／搬运代码可能不遵守入库限制；物品生成后仍可由整理 WorkGiver 处理。
 - 类似堆栈预算使用每个 `ThingDef` 继承得到的有效 N；不同品质、材质或耐久变体不会各自获得一份独立的 N 个堆位。
 - 组内整理需要兼容堆或合法空格，否则仅布局超额的部分也可能被搬出。
