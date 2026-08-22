@@ -24,20 +24,44 @@ namespace StorageGroupQuotas
         internal static ISlotGroup ScopeAt(IntVec3 cell, Map map)
         {
             SlotGroup local = cell.GetSlotGroup(map);
-            return local == null ? null : (ISlotGroup)(local.StorageGroup ?? (ISlotGroup)local);
+            if (local == null || ExternalStorageUtility.IsExternallyManaged(local))
+            {
+                return null;
+            }
+
+            StorageGroup storageGroup = local.StorageGroup;
+            if (storageGroup != null && ExternalStorageUtility.IsExternallyManaged(storageGroup))
+            {
+                return null;
+            }
+
+            return storageGroup != null ? (ISlotGroup)storageGroup : local;
         }
 
         internal static ISlotGroup ScopeForSettings(StorageSettings settings)
         {
             if (settings?.owner is StorageGroup group)
             {
-                return group;
+                return ExternalStorageUtility.IsExternallyManaged(group) ? null : (ISlotGroup)group;
             }
 
             if (settings?.owner is ISlotGroupParent parent)
             {
+                if (ExternalStorageUtility.IsExternallyManaged(parent))
+                {
+                    return null;
+                }
+
                 SlotGroup local = parent.GetSlotGroup();
-                return local == null ? null : (ISlotGroup)(local.StorageGroup ?? (ISlotGroup)local);
+                if (local == null || ExternalStorageUtility.IsExternallyManaged(local))
+                {
+                    return null;
+                }
+
+                StorageGroup storageGroup = local.StorageGroup;
+                return storageGroup == null || !ExternalStorageUtility.IsExternallyManaged(storageGroup)
+                    ? storageGroup != null ? (ISlotGroup)storageGroup : local
+                    : null;
             }
 
             return null;
@@ -58,7 +82,7 @@ namespace StorageGroupQuotas
             long total = 0;
             foreach (Thing thing in scope.HeldThings)
             {
-                if (thing.def == def)
+                if (thing.Spawned && thing.def == def)
                 {
                     total += thing.stackCount;
                     if (total >= int.MaxValue)
@@ -76,10 +100,29 @@ namespace StorageGroupQuotas
             return scope?.HeldThings.Count(thing => thing.Spawned && thing.def == def) ?? 0;
         }
 
-        internal static int RemainingForDestination(Thing incoming, IntVec3 cell, Map map)
+        internal static int TotalRemainingForDestination(Thing incoming, IntVec3 cell, Map map)
+        {
+            return TotalRemainingForDestination(
+                incoming,
+                cell,
+                map,
+                incoming?.stackCount ?? 0);
+        }
+
+        /// <summary>
+        /// Returns the linked-group amount budget while accounting for only the part of a
+        /// spawned source stack that will actually leave that same group. External haulers can
+        /// reserve a partial transfer before splitting it, so subtracting the entire source
+        /// stack would overstate the destination's available quota.
+        /// </summary>
+        internal static int TotalRemainingForDestination(
+            Thing incoming,
+            IntVec3 cell,
+            Map map,
+            int sourceCountLeaving)
         {
             ISlotGroup destination = ScopeAt(cell, map);
-            if (destination == null)
+            if (destination == null || incoming?.def == null)
             {
                 return int.MaxValue;
             }
@@ -90,12 +133,45 @@ namespace StorageGroupQuotas
             ISlotGroup source = ScopeForThing(incoming);
             if (ReferenceEquals(source, destination))
             {
-                current = Math.Max(0, current - incoming.stackCount);
+                int leaving = Math.Min(
+                    Math.Max(0, sourceCountLeaving),
+                    Math.Max(0, incoming.stackCount));
+                current = Math.Max(0, current - leaving);
             }
 
             int totalRemaining = upper == int.MaxValue
                 ? int.MaxValue
                 : Math.Max(0, upper - current);
+            return totalRemaining;
+        }
+
+        internal static int RemainingForDestination(Thing incoming, IntVec3 cell, Map map)
+        {
+            return RemainingForDestination(
+                incoming,
+                cell,
+                map,
+                incoming?.stackCount ?? 0);
+        }
+
+        internal static int RemainingForDestination(
+            Thing incoming,
+            IntVec3 cell,
+            Map map,
+            int sourceCountLeaving)
+        {
+            ISlotGroup destination = ScopeAt(cell, map);
+            if (destination == null || incoming?.def == null)
+            {
+                return int.MaxValue;
+            }
+
+            int totalRemaining = TotalRemainingForDestination(
+                incoming,
+                cell,
+                map,
+                sourceCountLeaving);
+            StorageQuotaData data = QuotaDataStore.Get(destination.Settings);
             if (data.Mode != QuotaMode.SimilarStacks)
             {
                 return totalRemaining;
@@ -183,7 +259,17 @@ namespace StorageGroupQuotas
 
             foreach (SlotGroup local in map.haulDestinationManager.AllGroupsListInPriorityOrder)
             {
+                if (ExternalStorageUtility.IsExternallyManaged(local))
+                {
+                    continue;
+                }
+
                 ISlotGroup scope = local.StorageGroup ?? (ISlotGroup)local;
+                if (ExternalStorageUtility.IsExternallyManaged(scope))
+                {
+                    continue;
+                }
+
                 if (!seen.Add(scope))
                 {
                     continue;

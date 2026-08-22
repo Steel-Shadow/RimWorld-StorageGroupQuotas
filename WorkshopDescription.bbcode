@@ -40,6 +40,10 @@ Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set va
 
 • If both hauling mods are active, SGQ uses Hauler's Dream only; Hauler's Dream is designed to replace Pick Up And Haul
 
+• Optional compatibility for Digital Storage 3.0: items routed directly from a core are limited by the shelf's live quota instead of being fed back forever. Digital Storage Buffer Warehouses keep using their own Min/Max controls and are not managed by SGQ. Linking one to other shelves excludes that whole linked group from SGQ. If a physical shelf should retain stock, give its Digital Storage core a lower priority than the shelf
+
+• Optional compatibility for Manipulator Beam Emitter: ordinary stacks reserve both item count and a new stack slot, while every carried item is checked again on arrival. Several beams can work in parallel without repeatedly overfilling the same storage group
+
 • [b]Incompatible with Stack Gap[/b] — disable it first; its settings are not migrated
 
 [url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]Source code, full documentation, and issue tracker[/url]
@@ -87,6 +91,10 @@ Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分
 • 为 Hauler's Dream 与 Pick Up And Haul 提供可选的总量超额批量搬运适配；无法使用时会安全回退原版搬运
 
 • 若两个搬运模组同时启用，SGQ 只使用 Hauler's Dream；Hauler's Dream 本身用于替代 Pick Up And Haul
+
+• 可选兼容【CA】数字存储-Digital Storage 3.0：核心直接送往物品架的物品会受到实时配额限制，不会再被反复送回。数字存储的缓冲仓库继续使用自身 Min／Max，不由 SGQ 管理；如果它与其他物品架链接，整个链接组都会排除 SGQ。希望实体物品架保留库存时，请把数字存储核心的优先级设得低于该物品架
+
+• 可选兼容 Manipulator Beam Emitter（牵引光束）：普通物品会同时预留数量和新堆位，所有搬运物都会在到达时再次核对；多道光束可以并行工作，又不会反复把同一存储组塞过量
 
 • [b]与 Stack Gap 不兼容[/b] — 请先禁用；旧配置不会迁移
 

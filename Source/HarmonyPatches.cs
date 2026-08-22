@@ -17,6 +17,8 @@ namespace StorageGroupQuotas
             Harmony harmony = new Harmony("steelshadow.storagegroupquotas");
             harmony.PatchAll();
             InventoryHaulingCompatibility.Apply(harmony);
+            DigitalStorageCompatibility.Apply(harmony);
+            ManipulatorBeamCompatibility.Apply(harmony);
 
             if (ModsConfig.IsActive("Andromeda.StackGap"))
             {
@@ -125,7 +127,8 @@ namespace StorageGroupQuotas
         private static void Postfix(ITab_Storage __instance)
         {
             IStoreSettingsParent parent = SelectedParentProperty?.GetValue(__instance, null) as IStoreSettingsParent;
-            if (parent == null)
+            StorageSettings settings = parent?.GetStoreSettings();
+            if (settings == null || QuotaUtility.ScopeForSettings(settings) == null)
             {
                 return;
             }
@@ -148,7 +151,7 @@ namespace StorageGroupQuotas
             Rect buttonRect = new Rect(QuotaButtonX, 10f, buttonWidth, 24f);
             if (Widgets.ButtonText(buttonRect, "SGQ_QuotaButton".Translate()))
             {
-                Find.WindowStack.Add(new Window_StorageQuotas(parent.GetStoreSettings()));
+                Find.WindowStack.Add(new Window_StorageQuotas(settings));
             }
         }
     }
