@@ -2,6 +2,7 @@ Source/bin/
 Source/obj/
 .workshop-stage/
 1.6/Assemblies/
+1.7/Assemblies/*
 artifacts/
 dist/
 *.dll
@@ -10,3 +11,4 @@ dist/
 *.nupkg
 *.user
 *.suo
+!1.7/Assemblies/StorageGroupQuotas.dll

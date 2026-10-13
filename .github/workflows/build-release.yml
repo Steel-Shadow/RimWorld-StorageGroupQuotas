@@ -32,16 +32,28 @@ jobs:
           cache: true
           cache-dependency-path: Source/packages.lock.json
 
-      - name: Restore locked dependencies
+      - name: Restore locked dependencies for RimWorld 1.6
         run: dotnet restore Source/StorageGroupQuotas.csproj --locked-mode
 
-      - name: Build release DLL
+      - name: Build RimWorld 1.6 release DLL
         run: >-
           dotnet build Source/StorageGroupQuotas.csproj
           --configuration Release
           --no-restore
           -p:ContinuousIntegrationBuild=true
-          -p:OutputPath=${{ github.workspace }}/artifacts/bin/
+          -p:OutputPath=${{ github.workspace }}/artifacts/bin/1.6/
+
+      - name: Validate checked-in RimWorld 1.7 release DLL
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "1.7/Assemblies/$MOD_NAME.dll"
+          grep -aFq '.NETCoreApp,Version=v10.0' "1.7/Assemblies/$MOD_NAME.dll"
+          grep -aFq 'UnityStubs' "1.7/Assemblies/$MOD_NAME.dll"
+          if grep -aEq 'UnityEngine\.(CoreModule|IMGUIModule|TextRenderingModule)' "1.7/Assemblies/$MOD_NAME.dll"; then
+            echo "The RimWorld 1.7 DLL still references legacy UnityEngine module assemblies." >&2
+            exit 1
+          fi
 
       - name: Create installable mod archive
         shell: bash
@@ -49,9 +61,11 @@ jobs:
           set -euo pipefail
 
           stage="$RUNNER_TEMP/$MOD_NAME"
-          mkdir -p "$stage/1.6/Assemblies"
-          cp "artifacts/bin/$MOD_NAME.dll" "$stage/1.6/Assemblies/"
+          mkdir -p "$stage/1.6/Assemblies" "$stage/1.7/Assemblies"
+          cp "artifacts/bin/1.6/$MOD_NAME.dll" "$stage/1.6/Assemblies/"
+          cp "1.7/Assemblies/$MOD_NAME.dll" "$stage/1.7/Assemblies/"
           cp -R About Defs Languages "$stage/"
+          cp LoadFolders.xml "$stage/"
           cp README.md "$stage/"
 
           (
@@ -76,7 +90,7 @@ jobs:
 
           notes="$RUNNER_TEMP/release-notes.md"
           cat > "$notes" <<EOF
-          Automated build from the latest `main` branch.
+          Automated RimWorld 1.6 build and RimWorld 1.7 package from the latest `main` branch.
 
           Commit: [`${GITHUB_SHA}`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})
 

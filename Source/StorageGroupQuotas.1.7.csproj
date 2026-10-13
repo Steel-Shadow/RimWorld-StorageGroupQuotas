@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>StorageGroupQuotas</AssemblyName>
+    <RootNamespace>StorageGroupQuotas</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>..\1.7\Assemblies\</OutputPath>
+    <DebugType>portable</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <NuGetLockFilePath>$(BaseIntermediateOutputPath)packages.lock.json</NuGetLockFilePath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RimWorldRoot Condition="'$(RimWorldRoot)' == ''">$(RIMWORLD_ROOT)</RimWorldRoot>
+    <HarmonyAssemblyPath Condition="'$(HarmonyAssemblyPath)' == ''">$(RIMWORLD_HARMONY_ASSEMBLY)</HarmonyAssemblyPath>
+  </PropertyGroup>
+
+  <Target Name="ValidateRimWorld17References" BeforeTargets="ResolveReferences">
+    <Error
+      Condition="!Exists('$(RimWorldRoot)\Assembly-CSharp.dll')"
+      Text="RimWorld 1.7 Assembly-CSharp.dll was not found. Pass -p:RimWorldRoot=&quot;path to the RimWorld installation&quot; or set RIMWORLD_ROOT." />
+    <Error
+      Condition="!Exists('$(RimWorldRoot)\UnityStubs.dll')"
+      Text="RimWorld 1.7 UnityStubs.dll was not found under RimWorldRoot." />
+    <Error
+      Condition="!Exists('$(RimWorldRoot)\Waylith.dll')"
+      Text="RimWorld 1.7 Waylith.dll was not found under RimWorldRoot." />
+    <Error
+      Condition="!Exists('$(HarmonyAssemblyPath)')"
+      Text="Harmony 3 was not found. Pass -p:HarmonyAssemblyPath=&quot;path to the 1.7 0Harmony.dll&quot; or set RIMWORLD_HARMONY_ASSEMBLY." />
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="*.cs" />
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RimWorldRoot)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityStubs">
+      <HintPath>$(RimWorldRoot)\UnityStubs.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Waylith">
+      <HintPath>$(RimWorldRoot)\Waylith.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyAssemblyPath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
