@@ -14,7 +14,7 @@ Set a clear per-item limit for an entire linked storage group. For ammo depots, 
 
 The quota window follows RimWorld's category tree. Set values on a broad category, refine them on a child category, and override only exceptional items. In Similar stacks mode, the per-stack limit and maximum stack count inherit independently.
 
-RimWorld 1.6 · Requires Harmony · Package ID: `steelshadow.storagegroupquotas`
+RimWorld 1.6 and 1.7 · Requires Harmony · Package ID: `steelshadow.storagegroupquotas`
 
 ### Which mode should I use?
 
@@ -84,8 +84,9 @@ A configured per-stack value never raises a stack above its current `ThingDef.st
 
 ### Compatibility
 
-- RimWorld 1.6
+- RimWorld 1.6 and 1.7
 - **Harmony is required.**
+- On RimWorld 1.7, optional integrations also require a compatible 1.7 build of the other mod.
 - Combat Extended is not required, but CE ammunition works because quotas apply to ordinary storable item definitions.
 - Hauler's Dream and Pick Up And Haul optionally enable quota-aware batch removal of total-count overflow. Neither becomes a hard dependency: unsupported pawns, occupied hauling inventories, missing APIs, and layout-only work safely use the vanilla hauling path.
 - The Hauler's Dream path keeps HD's eligibility settings, smart-overload ceiling, and Combat Extended weight/bulk calculation. Its consolidated unload is clamped both when a destination is chosen and again on arrival, so normal HD cargo also cannot overfill quota-managed storage.
@@ -144,7 +145,12 @@ Yes. Capacity is based on currently spawned contents; several already-created va
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | Ordinary hauling jobs for exact overflow removal and similar-stack rebalancing. |
 | `Source/JobDriver_HaulQuotaOverflowBatch.cs` | Optional inventory batch pickup and quota-checked unloading for total-count overflow. |
 | `Source/Window_StorageQuotas.cs` | Quota configuration window in the vanilla Storage tab. |
-| `Source/packages.lock.json` | Locked compile-time reference packages for reproducible builds. |
+| `Source/StorageGroupQuotas.csproj` | RimWorld 1.6 / .NET Framework 4.7.2 build. |
+| `Source/StorageGroupQuotas.1.7.csproj` | RimWorld 1.7 / .NET 10 build. |
+| `Source/Directory.Build.props` | Keeps the two projects' intermediate files isolated. |
+| `Source/packages.lock.json` | Locked compile-time reference packages for the reproducible 1.6 build. |
+| `1.7/Assemblies/StorageGroupQuotas.dll` | Checked-in net10 release built against the installed 1.7 game and Harmony 3 assemblies. |
+| `LoadFolders.xml` | Selects the matching versioned assembly directory so 1.7 never falls back to the 1.6 DLL. |
 | `About/About.xml` | Package identity, supported game version, dependencies, load-order rules, and incompatibilities. |
 | `About/PublishedFileId.txt` | Permanent Steam Workshop identity used for updates and mod-manager metadata. |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | Registration of the custom hauling `WorkGiverDef`. |
@@ -249,7 +255,7 @@ The registered work giver belongs to `Hauling`, has `priorityInType` 20, require
 
 #### Known limitations
 
-- Only RimWorld 1.6 is declared and tested.
+- RimWorld 1.6 and 1.7 are declared. The 1.7 build has been compiled and Harmony-patch-tested against RimWorld 1.7.4977 and Harmony 3.0.0-rc.2; optional integrations still depend on the other mod providing a compatible 1.7 release.
 - Ordinary in-flight vanilla hauling jobs do not reserve a group-wide numeric quota budget. Quota-managed `HaulToCell` jobs reserve their destination cell, HD inventory unloading is rechecked on arrival, and ordinary Manipulator Beam storage transfers reserve shared amount and new-stack-slot budgets; unsupported jobs aimed at different cells can still briefly race.
 - An inventory batch collects at most 64 overflow source stacks within 12 cells of the selected stack per job. Additional excess is handled by later jobs.
 - A batch starts only when the selected backend's hauled-item set is empty. If HD/PUAH, its pawn comp, or an optional inventory API does not match the expected signatures, SGQ fails closed to vanilla `HaulToCell`.
@@ -265,24 +271,27 @@ The registered work giver belongs to `Hauling`, has `priorityInType` 20, require
 
 #### Build
 
-The source-only SDK-style project targets .NET Framework 4.7.2. It uses private compile-time package references instead of paths into a local game installation:
+The repository has two SDK-style projects:
 
-- `Krafs.Rimworld.Ref` 1.6.4871
-- `Lib.Harmony.Ref` 2.4.1
-- `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3
+- RimWorld 1.6: .NET Framework 4.7.2, `Krafs.Rimworld.Ref` 1.6.4871, `Lib.Harmony.Ref` 2.4.1, and `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3.
+- RimWorld 1.7: .NET 10 with direct compile-time references to the installed `Assembly-CSharp.dll`, `UnityStubs.dll`, `Waylith.dll`, and Harmony 3 `0Harmony.dll`.
 
-Dependency resolution is locked by `Source/packages.lock.json`, so a local RimWorld installation is not required to compile.
+Krafs has not yet published a 1.7 RimRef package. To avoid compiling the release against obsolete Unity assembly identities, the 1.7 project therefore requires a local RimWorld 1.7 installation and Harmony 3. No game or Harmony assemblies are committed; only this mod's resulting DLL is tracked so the public CI can package the exact tested binary.
 
 From the repository root:
 
 ```powershell
 dotnet restore .\Source\StorageGroupQuotas.csproj --locked-mode
 dotnet build .\Source\StorageGroupQuotas.csproj -c Release --no-restore
+
+$env:RIMWORLD_ROOT = 'D:\Path\To\RimWorld'
+$env:RIMWORLD_HARMONY_ASSEMBLY = 'D:\Path\To\Harmony\1.7\Assemblies\0Harmony.dll'
+dotnet build .\Source\StorageGroupQuotas.1.7.csproj -c Release
 ```
 
-Local output is written to the ignored `1.6/Assemblies` directory. On every push to `main`, GitHub Actions restores in locked mode, builds on Ubuntu with .NET 10, creates `StorageGroupQuotas.zip`, uploads the workflow artifact, and updates the rolling prerelease tagged `continuous`.
+The 1.6 output directory is ignored. The 1.7 project overwrites the tracked `1.7/Assemblies/StorageGroupQuotas.dll`; rebuild and commit it whenever shared source changes. On every push to `main`, GitHub Actions restores and builds 1.6, verifies that the checked-in 1.7 DLL targets net10 and references `UnityStubs`, packages both versions, uploads `StorageGroupQuotas.zip`, and updates the rolling prerelease tagged `continuous`.
 
-The GitHub archive contains `About`, `Defs`, `Languages`, the release DLL, and README. A clean Workshop package should contain only runtime content such as `About`, `Defs`, `Languages`, and the release DLL; preserve `About/PublishedFileId.txt` after the first upload so future uploads update the same item.
+The GitHub archive contains `About`, `Defs`, `Languages`, `LoadFolders.xml`, both versioned release DLLs, and README. A clean Workshop package should contain only runtime content such as `About`, `Defs`, `Languages`, `LoadFolders.xml`, and both DLLs; preserve `About/PublishedFileId.txt` after the first upload so future uploads update the same item.
 
 <a id="简体中文"></a>
 
@@ -292,7 +301,7 @@ The GitHub archive contains `About`, `Defs`, `Languages`, the release DLL, and R
 
 配额窗口沿用 RimWorld 的分类树：可以先给大类设置数值，再在子类中细分，只对少数例外物品单独覆盖。在“类似堆栈 ×N”模式中，每堆上限和最大堆数分别独立继承。
 
-RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
+RimWorld 1.6 与 1.7 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 ### 两种模式怎么选？
 
@@ -362,8 +371,9 @@ RimWorld 1.6 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
 ### 兼容性
 
-- RimWorld 1.6
+- RimWorld 1.6 与 1.7
 - **必须加载 Harmony。**
+- 在 RimWorld 1.7 中，可选适配还需要对应模组自身提供兼容的 1.7 版本。
 - 不强制依赖 Combat Extended，但 CE 弹药会作为普通可存储物品受到配额控制。
 - Hauler's Dream 与 Pick Up And Haul 都可以启用遵守配额的“总量超额”批量移出，且都不是硬依赖。小人不受所选后端支持、搬运库存已有物品、接口缺失或任务只是堆栈布局整理时，都会安全使用原版搬运路径。
 - Hauler's Dream 路径会保留 HD 的小人资格设置、智能超载上限，以及 Combat Extended 重量／体积算法。HD 选择卸货目标时会裁剪一次，到达后还会再次核对，因此普通 HD 货物也不能把受配额管理的存储组塞过量。
@@ -422,7 +432,12 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | 用正常搬运工作准确移走超量物品并整理类似堆栈。 |
 | `Source/JobDriver_HaulQuotaOverflowBatch.cs` | 为总量超额提供可选的库存批量拾取，并在卸货时重新核对配额。 |
 | `Source/Window_StorageQuotas.cs` | 原版“存储”标签中的配额设置窗口。 |
-| `Source/packages.lock.json` | 锁定用于编译的引用包，保证可复现构建。 |
+| `Source/StorageGroupQuotas.csproj` | RimWorld 1.6 / .NET Framework 4.7.2 构建。 |
+| `Source/StorageGroupQuotas.1.7.csproj` | RimWorld 1.7 / .NET 10 构建。 |
+| `Source/Directory.Build.props` | 隔离两个项目的中间文件。 |
+| `Source/packages.lock.json` | 锁定 1.6 编译引用包，保证该构建可复现。 |
+| `1.7/Assemblies/StorageGroupQuotas.dll` | 针对本机 1.7 游戏程序集与 Harmony 3 编译并提交的 net10 Release DLL。 |
+| `LoadFolders.xml` | 为游戏版本选择对应程序集目录，防止 1.7 回退加载 1.6 DLL。 |
 | `About/About.xml` | 包标识、支持的游戏版本、依赖、加载顺序和冲突声明。 |
 | `About/PublishedFileId.txt` | 用于更新与模组管理器识别的永久 Steam 创意工坊 ID。 |
 | `Defs/WorkGiverDefs/WorkGivers.xml` | 注册自定义搬运 `WorkGiverDef`。 |
@@ -527,7 +542,7 @@ SGQ 不直接复用两个搬运模组各自的批量驱动，因为它们都不�
 
 #### 已知限制
 
-- 仅声明并测试 RimWorld 1.6。
+- 已声明支持 RimWorld 1.6 与 1.7；1.7 构建已在 RimWorld 1.7.4977 与 Harmony 3.0.0-rc.2 上完成编译和补丁挂载测试。可选适配仍取决于对应模组是否提供兼容的 1.7 版本。
 - 普通原版在途搬运任务不会预留整个存储组的“数值配额预算”。受配额管理的 `HaulToCell` 会预留目标格，HD 库存卸货会在到达时复核，普通牵引光束仓储传送则会预留共享的数量和新堆位预算；不受支持且指向不同格位的任务仍可能短暂竞争同一组容量。
 - 库存批量任务每次最多收集所选堆 12 格范围内的 64 个超量来源堆；其余超量由后续任务继续处理。
 - 只有当所选后端的小人搬运记录为空时才会开始 SGQ 批量任务。HD／PUAH、对应小人 Comp 或可选库存接口不符合预期签名时，SGQ 会关闭该路径并回退到原版 `HaulToCell`。
@@ -543,21 +558,24 @@ SGQ 不直接复用两个搬运模组各自的批量驱动，因为它们都不�
 
 #### 构建
 
-该源码仓库使用 SDK 风格项目，目标为 .NET Framework 4.7.2。编译引用来自私有的包依赖，不再依赖本机游戏安装路径：
+仓库包含两个 SDK 风格项目：
 
-- `Krafs.Rimworld.Ref` 1.6.4871
-- `Lib.Harmony.Ref` 2.4.1
-- `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3
+- RimWorld 1.6：.NET Framework 4.7.2、`Krafs.Rimworld.Ref` 1.6.4871、`Lib.Harmony.Ref` 2.4.1 与 `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3。
+- RimWorld 1.7：.NET 10，编译时直接引用已安装游戏中的 `Assembly-CSharp.dll`、`UnityStubs.dll`、`Waylith.dll`，以及 Harmony 3 的 `0Harmony.dll`。
 
-`Source/packages.lock.json` 会锁定依赖解析，因此编译时不需要在本机安装 RimWorld。
+Krafs 尚未发布 1.7 的 RimRef 包。为了避免 Release DLL 保留旧 Unity 程序集身份，1.7 项目目前必须在已安装 RimWorld 1.7 与 Harmony 3 的本机编译。仓库不会提交游戏或 Harmony 程序集，只跟踪本模组生成并测试过的 DLL，供公开 CI 原样打包。
 
 在仓库根目录运行：
 
 ```powershell
 dotnet restore .\Source\StorageGroupQuotas.csproj --locked-mode
 dotnet build .\Source\StorageGroupQuotas.csproj -c Release --no-restore
+
+$env:RIMWORLD_ROOT = 'D:\Path\To\RimWorld'
+$env:RIMWORLD_HARMONY_ASSEMBLY = 'D:\Path\To\Harmony\1.7\Assemblies\0Harmony.dll'
+dotnet build .\Source\StorageGroupQuotas.1.7.csproj -c Release
 ```
 
-本地输出位于被忽略的 `1.6/Assemblies`。每次推送到 `main` 后，GitHub Actions 会在 Ubuntu 与 .NET 10 环境中按锁文件还原、构建、生成 `StorageGroupQuotas.zip`、上传工作流产物，并更新标签为 `continuous` 的滚动预发布。
+1.6 输出目录会被忽略；1.7 项目会覆盖仓库跟踪的 `1.7/Assemblies/StorageGroupQuotas.dll`，共享源码变化后必须重新构建并提交该 DLL。每次推送到 `main` 后，GitHub Actions 会还原并构建 1.6，确认已提交的 1.7 DLL 目标为 net10 且引用 `UnityStubs`，再打包两个版本、上传 `StorageGroupQuotas.zip`，并更新标签为 `continuous` 的滚动预发布。
 
-GitHub 安装包包含 `About`、`Defs`、`Languages`、Release DLL 和 README。干净的 Workshop 包只应包含 `About`、`Defs`、`Languages` 和 Release DLL 等运行文件；首次上传后必须保留 `About/PublishedFileId.txt`，以后才能更新同一创意工坊项目。
+GitHub 安装包包含 `About`、`Defs`、`Languages`、`LoadFolders.xml`、两个版本目录中的 Release DLL 和 README。干净的 Workshop 包只应包含 `About`、`Defs`、`Languages`、`LoadFolders.xml` 和两份 DLL 等运行文件；首次上传后必须保留 `About/PublishedFileId.txt`，以后才能更新同一创意工坊项目。
