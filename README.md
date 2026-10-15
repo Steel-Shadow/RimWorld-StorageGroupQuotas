@@ -10,77 +10,46 @@
 
 ## English
 
-Set a clear per-item limit for an entire linked storage group. For ammo depots, you can also keep several real stacks so different pawns have separate pickup targets instead of waiting on one reserved pile.
+### Put the right amount on every shelf
 
-The quota window follows RimWorld's category tree. Set values on a broad category, refine them on a child category, and override only exceptional items. In Similar stacks mode, the per-stack limit and maximum stack count inherit independently.
+Storage Group Quotas lets you set a simple upper limit for each item on a shelf, in a stockpile, or across a linked storage group. Vanilla items and storable items added by other mods both work.
 
 RimWorld 1.6 and 1.7 · Requires Harmony · Package ID: `steelshadow.storagegroupquotas`
 
-### Which mode should I use?
+### Useful examples
+
+- **Restaurant food shelf:** cap the serving supply near the tables instead of moving the whole freezer into the dining room.
+- **Prison food:** cap the meals stored for prisoners to reduce over-delivery and spoilage.
+- **Barn or pen feed:** limit hay or animal feed so one high-priority shelf does not pull in the ranch's entire supply.
+- **Modded ammunition rack:** arrange ammo from Combat Extended or other weapon mods into several smaller, ready-to-grab stacks.
+
+**A quota is a maximum, not a minimum stock target or a new restock order.** Normal RimWorld hauling still decides when items are brought in.
+
+### Choose a mode
 
 | What you want | Mode | Result |
 | --- | --- | --- |
-| Keep an exact total of medicine, meals, shells, ammo, or another item | **Entire storage count** | Each item type may occupy no more than X units across the whole linked storage group. |
-| Keep several physical stacks that pawns can reserve separately | **Similar stacks ×N** | Each stack holds at most X units, with at most N stacks. X and N can be inherited or overridden independently; total capacity is X × N. |
+| Limit only the total amount | **Entire storage count** | Keep at most X of each item across the whole storage group. |
+| Keep several separate pickup piles | **Similar stacks ×N** | Keep at most X per stack and at most N stacks of each item. |
 
-Quotas are calculated separately for every item type. Setting a quota of 100 does **not** mean 100 mixed items across the warehouse; it means up to 100 of each item that uses that value.
-
-New quota data uses `N = 1` as its global default maximum stack count. Existing storage settings keep their previously saved global N, and items without a new N override continue to inherit it.
-
-#### Why keep several stacks?
-
-With some hauling or reservation optimization setups, one physical stack may be reserved by only one pawn or job at a time. Multiple physical stacks provide separate reservation targets and can reduce queues when several weapons reload or are resupplied together.
+Category values are calculated separately for every item type. In **Entire storage count**, a category value of 100 means up to 100 of each item that inherits it, not 100 mixed items in total. In **Similar stacks ×N**, X and N are likewise calculated separately for every item type.
 
 ### Quick start
 
 1. Select a shelf or stockpile.
 2. Click **Quotas**.
 3. Choose **Entire storage count** or **Similar stacks ×N**.
-4. Expand the category tree and set values for categories or individual items. Select an inherited cell to create an override; use the adjacent reset control to resume inheritance. In Similar stacks mode, **Per-stack quota** and **Max stacks** are edited independently. The global defaults at the top are optional fallbacks.
+4. Set a value for a category or an individual item. Children automatically use the nearest parent value unless you override them.
 
-The window shows the current quantity and physical stack count for every listed item, plus any overflow or stack layout waiting for hauling work. Its item tree refreshes while open, and its category folding is shared with the vanilla Storage tree. Items that vanilla no longer allows remain visible in gray when they still have a quota or max-stack override, or are physically present in the group.
+In **Similar stacks ×N**, the per-stack amount and maximum stack count are set separately. For example, `25 × 4` keeps up to four stacks of 25 rounds: up to 100 rounds in total, with up to four possible pickup targets.
 
-### How category inheritance works
+### Good to know
 
-Each editable field is resolved separately in this order:
-
-1. The item's own override for that field.
-2. The nearest category override for that field in its parent chain.
-3. That field's global default at the top of the window.
-
-In Similar stacks mode, X and N have independent inheritance chains and may come from different levels. A child can override only **Max stacks** while continuing to inherit its **Per-stack quota**, or the other way around.
-
-A category's values are applied **separately to every descendant item**. For example, setting `Foods` to 100 allows up to 100 of each food definition that inherits it; it is not a shared 100-item budget. Likewise, a category N gives each descendant item its own N-stack allowance rather than one shared stack pool. A quota can explicitly use `0`; max stacks is always at least `1`.
-
-Some RimWorld definitions belong to more than one category. To keep inheritance unambiguous and prevent duplicate rows, the mod uses RimWorld's `FirstThingCategory` as that item's displayed parent and inheritance chain.
-
-### Example: a 105 mm ammunition depot
-
-Set the ammunition category to **25 per stack** and **Max stacks 4**:
-
-- Total capacity is 100 rounds.
-- A child category can override only **Max stacks** to 2 and still inherit 25 per stack, giving each item in that child a capacity of 50.
-- One stack of 100 is not treated as 75 excess. Haulers progressively split it into up to four stacks of no more than 25.
-- If the group contains 125 rounds, exactly 25 are moved outside the group; the retained 100 are then arranged into separate stacks when valid cells are available.
-
-### What happens in game?
-
-- All linked shelves in the same vanilla `StorageGroup` share one quota.
-- Each item definition is counted independently.
-- New hauling jobs are capped by the group's remaining capacity.
-- Existing excess is moved by hauling work; it is never deleted or teleported. With Hauler's Dream or Pick Up And Haul active, total-count overflow can be collected from several nearby stacks in the same source group into pawn inventory. Pickup and unloading both recheck the live quota, and the vanilla single-stack job remains the fallback.
-- Haulers first look for valid storage outside the source group. If none exists, they look for a reachable non-storage floor cell outside the group.
-- Similar-stacks mode first tries to split or consolidate stacks inside the group. If the selected layout cannot be completed inside the group, the unresolved part may be moved outside.
-- The mod does not change `ThingDef.stackLimit` globally.
-
-Because cleanup uses normal work, it needs an available hauler, a valid reservation, a path, and enough usable cells. Changes are therefore not necessarily immediate.
-
-### What does 0 mean?
-
-- **Entire storage count:** `0` means unlimited.
-- **Similar stacks ×N:** a per-stack value of `0` uses the item's current stack limit. **Max stacks** is never zero; remove its override to inherit, and its minimum configured value is `1`.
-
-A configured per-stack value never raises a stack above its current `ThingDef.stackLimit`.
+- Linked shelves share one quota.
+- Category values apply separately to every item below that category; they are not one mixed-item budget.
+- Excess items are moved away by normal hauling work. They are never deleted or teleported.
+- In **Entire storage count**, `0` means unlimited. In **Similar stacks ×N**, a per-stack value of `0` uses the item's normal stack limit; maximum stacks is always at least `1`.
+- The mod does not globally change an item's normal stack limit.
 
 ### Compatibility
 
@@ -297,77 +266,46 @@ The GitHub archive contains `About`, `Defs`, `Languages`, `LoadFolders.xml`, bot
 
 ## 简体中文
 
-为整个链接存储组设置清楚的单项数量上限。对于弹药库，还可以保留多个真实堆栈，让不同小人各自找到可预留的取用目标，不必都等待同一堆物资。
+### 让每个货架都只放刚好够用的数量
 
-配额窗口沿用 RimWorld 的分类树：可以先给大类设置数值，再在子类中细分，只对少数例外物品单独覆盖。在“类似堆栈 ×N”模式中，每堆上限和最大堆数分别独立继承。
+Storage Group Quotas（存储组配额）可以为物品架、储存区或一组已链接的物品架设置简单的单项存放上限。原版物品和其他模组加入的可储存物品都能使用。
 
 RimWorld 1.6 与 1.7 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquotas`
 
-### 两种模式怎么选？
+### 常见用途
+
+- **餐厅食品架：**只摆少量餐食，避免小人把整座冷库搬进餐厅。
+- **囚犯食物：**限制囚犯区最多存放多少餐食，减少过量配送和腐坏。
+- **牧场饲料：**限制牧场或喂食区的干草数量，避免高优先级物品架吸走全部牧草。
+- **模组弹药架：**把 Combat Extended 或其他武器模组的弹药整理成几堆较小、随时可取的实体堆栈。
+
+**配额是存放上限，不是最低库存或新的补货命令。**何时入库仍由 RimWorld 的正常搬运决定。
+
+### 选择一种模式
 
 | 你的需求 | 模式 | 实际结果 |
 | --- | --- | --- |
-| 精确控制药品、食物、炮弹、弹药等某种物品的总数 | **整个仓库数量** | 整个链接存储组内，每种物品最多保留 X 件。 |
-| 保留多个可由不同小人分别预留的实体堆栈 | **类似堆栈 ×N** | 每堆最多 X 件，最多保留 N 个真实堆栈；X 和 N 可分别继承或覆盖，总容量为 X × N。 |
+| 只限制物品总量 | **整个仓库数量** | 整个存储组内，每种选定物品最多保留 X 件。 |
+| 限制总量，同时保留多个独立取用堆 | **类似堆栈 ×N** | 每堆最多 X 件，最多保留 N 个实体堆栈，总容量为 X × N。 |
 
-配额会对每种物品分别计算。设置 100 并不是“整个仓库里各种物品合计 100 件”，而是每个使用该值的物品各自最多 100 件。
-
-新建配额数据的全局默认最大堆数从 `N = 1` 开始；已有存储设置会保留原先保存的全局 N，没有新 N 覆盖的物品会继续继承它。
-
-#### 为什么要保留多堆？
-
-在部分搬运或预留优化环境下，一堆实体物品同时可能只能被一个小人或任务预留。多个真实堆栈能提供彼此独立的预留目标，减少多件武器同时换弹或补给时的排队。
+分类数值会对每种物品分别计算。在“整个仓库数量”模式下，分类值 100 表示每种继承该值的物品各自最多 100 件，并不是各种物品合计 100 件；“类似堆栈 ×N”中的 X 和 N 同样按每种物品分别计算。
 
 ### 快速使用
 
 1. 选择物品架或储存区。
 2. 点击“存储配额”。
 3. 选择“整个仓库数量”或“类似堆栈 ×N”。
-4. 展开分类树，为分类或单个物品设置数值。点击继承单元格可建立覆盖，使用旁边的重置控件可恢复继承；在“类似堆栈 ×N”模式中，“每堆上限”和“最大堆数”分别独立设置。窗口顶部的全局默认值只是可选的继承基准。
+4. 为分类或单个物品设置数值。未单独设置的子项会自动使用最近的父级数值。
 
-窗口会显示每种物品的现有数量和实际堆数，并提示仍在等待搬运处理的超量物品或堆栈布局。窗口保持打开时会实时刷新物品树，分类折叠状态与原版物品筛选树共用。原版已经禁止、但仍有配额或最大堆数覆盖值，或仍实际存放在组内的物品会以灰色保留，方便继续管理。
+在“类似堆栈 ×N”模式中，“每堆上限”和“最大堆数”分别设置。例如 `25 × 4` 表示最多四堆、每堆 25 发，总计最多 100 发，并提供最多四个独立取用目标。
 
-### 分类继承规则
+### 使用时需要知道
 
-每一个可编辑字段都分别按以下顺序确定：
-
-1. 物品对该字段的单独设置。
-2. 父级链中最近一个对该字段有设置的分类。
-3. 窗口顶部该字段的全局默认值。
-
-在“类似堆栈 ×N”模式中，X 和 N 使用两条独立继承链，可以来自不同层级。子分类可以只覆盖“最大堆数”并继续继承“每堆上限”，反过来也可以。
-
-分类值会由**每一种后代物品分别使用**。例如把“食物”设为 100，表示继承该值的每种食物各自最多 100 件，并不是整个分类共享 100 件；分类 N 同样是每种后代物品各自拥有 N 个堆位，并非整个分类共享 N 堆。配额值可以显式设为 `0`，最大堆数则始终至少为 `1`。
-
-部分 RimWorld 物品定义同时属于多个分类。为了让继承关系唯一并避免列表重复，本模组使用原版 `FirstThingCategory` 作为该物品显示和继承的规范父级。
-
-### 示例：105mm 弹药库
-
-将弹药分类设置为**每堆 25、最大堆数 4**：
-
-- 总容量是 100 发。
-- 子分类可以只把“最大堆数”覆盖为 2，同时继续继承每堆 25，使该子分类中每种物品的容量分别为 50。
-- 如果组内是一堆 100 发，它不会被当成 75 发超量物品；搬运工会逐步把它拆成最多四堆、每堆不超过 25 发。
-- 如果组内有 125 发，会准确搬出 25 发；在存在合法格位时，再把保留的 100 发整理为多个独立堆栈。
-
-### 游戏里的实际行为
-
-- 同一个原版 `StorageGroup` 中链接的物品架共享一份配额。
-- 每个物品定义分别统计数量。
-- 新的入库搬运不会超过该组当前的剩余容量。
-- 已有超量物品通过搬运工作移走，不会被删除或瞬移。启用 Hauler's Dream 或 Pick Up And Haul 时，小人可把同一来源存储组内附近多堆“总量超额”物品按负重批量装入库存；拾取和卸货都会重新核对实时配额，无法使用兼容路径时则回退为原版单堆搬运。
-- 搬运工优先寻找来源组之外的合法仓储；找不到时，再寻找组外可到达的非仓储地面。
-- “类似堆栈 ×N”会优先在组内拆分或归并；如果所选布局无法在组内完成，未解决部分可能被搬到组外。
-- 本模组不会全局修改 `ThingDef.stackLimit`。
-
-由于整理依赖正常工作，必须存在可用搬运工、合法预留、可达路径和足够格位，因此设置变化不一定立即完成。
-
-### 0 表示什么？
-
-- **整个仓库数量：**`0` 表示不限量。
-- **类似堆栈 ×N：**每堆上限为 `0` 时使用该物品当前的堆叠上限。“最大堆数”不能为零；要恢复继承应删除该覆盖值，其最小设置值为 `1`。
-
-自定义的单堆值不会让实际堆栈超过当前 `ThingDef.stackLimit`。
+- 已链接的物品架共享一份配额。
+- 分类数值会由分类下的每种物品分别使用，并不是多种物品共享一份混合总额。
+- 超量物品会通过正常搬运移走，不会被删除或瞬移。
+- “整个仓库数量”中的 `0` 表示不限量；“类似堆栈 ×N”的每堆上限为 `0` 时使用物品原本的堆叠上限，最大堆数则至少为 `1`。
+- 本模组不会全局修改物品原本的堆叠上限。
 
 ### 兼容性
 

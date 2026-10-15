@@ -1,105 +1,85 @@
-[h1]Keep the right amount — in stacks your pawns can actually use[/h1]
+[h1]Put the right amount on every shelf[/h1]
 
-Storage Group Quotas adds [b]per-item limits[/b] to vanilla storage groups. Linked shelves are counted together as one group.
+Storage Group Quotas lets you set an [b]upper limit for each item[/b] on a shelf, stockpile, or linked shelf group. Linked shelves share one quota, and storable items added by other mods work too.
 
-It is especially useful for ammo depots: instead of one huge pile that everyone may wait to reserve, you can keep several real stacks as separate pickup targets.
+[h2]Useful around the whole colony[/h2]
+[list]
+[*]Cap restaurant food shelves at a small serving supply instead of moving the whole freezer into the dining room.
+[*]Limit the meals stored in a prison to reduce over-delivery and spoilage.
+[*]Limit hay at a barn or feeding area so one high-priority shelf does not pull in the ranch's entire supply.
+[*]Arrange ammunition from Combat Extended or other weapon mods into several smaller, ready-to-grab stacks.
+[/list]
 
-The quota list uses a familiar category tree. Set values for a broad category, refine them on a child category, and override only exceptional items. In Similar stacks mode, the per-stack limit and maximum stack count inherit independently. The quota tree refreshes with the vanilla allowed-item list while open, and both windows share category folding.
+[b]A quota is a maximum, not a minimum stock target or a new restock order.[/b] Normal RimWorld hauling still decides when items are brought in.
 
-[h2]Choose the mode you need[/h2]
-• [b]Entire storage count[/b] — Keep no more than X of each item type in this group. Best for medicine, meals, and anything where only the total matters.
+[h2]Choose one of two modes[/h2]
+[list]
+[*][b]Entire storage count[/b] — Keep up to X of each selected item across the whole group. Use this when only the total matters.
+[*][b]Similar stacks ×N[/b] — Keep up to X in each stack and up to N physical stacks. Total capacity is X × N. Use this for ammunition or supplies several pawns may need at once.
+[/list]
 
-• [b]Similar stacks ×N[/b] — Keep at most X items per stack and at most N physical stacks. X and N can be inherited or overridden independently. This is useful for ammunition from mods such as Combat Extended; for example, 25 × 4 gives a total capacity of 100 across up to four stacks.
+With some hauling or reservation mod setups, one physical stack can be claimed by only one pawn or job at a time. Several stacks provide separate pickup targets and can reduce waiting during simultaneous reloads or resupply. For example, [b]25 × 4[/b] allows up to 100 rounds in up to four stacks.
 
-With some hauling or reservation optimization mods, one physical stack may be reserved by only one pawn or job at a time. Multiple stacks provide separate reservation targets and can reduce queues when several weapons reload or are resupplied together.
+Set a whole category at once, then fine-tune a child category or individual item. Each item type receives its own limit; category values are not one shared mixed-item budget.
 
 [h2]What happens to excess items?[/h2]
-• Incoming hauling respects the group's remaining quota.
-
-• Existing excess is moved by normal hauling jobs — never deleted or teleported.
-
-• With Hauler's Dream or Pick Up And Haul active, a pawn can collect several nearby total-count overflow stacks from the same source group into inventory. Every pickup and drop is rechecked against the live quota, so the part that should remain on the shelf is not taken. Hauler's Dream keeps its own smart-overload and Combat Extended weight/bulk rules.
-
-• Haulers first use valid storage outside the group. If none exists, they place the excess on a reachable floor cell outside the group.
-
-• In Similar stacks mode, haulers first try to split or consolidate stacks inside the group. Anything that cannot fit the selected layout is moved outside.
+Incoming hauling respects the quota. Existing excess is moved by normal hauling to another valid storage area, or to reachable ground outside the group if no storage is available. Similar-stacks mode first tries to rearrange stacks inside the group. Nothing is deleted or teleported.
 
 [h2]How to use[/h2]
-Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set values for categories or individual items in the tree. In Similar stacks mode, [b]Per-stack quota[/b] and [b]Max stacks[/b] are configured independently. The global defaults at the top are optional; unset children inherit the nearest configured parent for each field.
-
-[b]Important:[/b] category values are calculated separately for every descendant item. A category N gives each item its own N-stack allowance; it is not one shared stack pool. In Entire storage mode, 0 means unlimited. In Similar stacks mode, 0 per stack uses that item's current stack limit, while max stacks is at least 1. The mod does not change ThingDef.stackLimit globally.
+Select a shelf or stockpile → click [b]Quotas[/b] → choose a mode → set a category or item value.
 
 [h2]Requirements and compatibility[/h2]
-• RimWorld 1.6 and 1.7
+[list]
+[*]RimWorld 1.6 and 1.7
+[*][b]Requires Harmony[/b]
+[*]Works with Combat Extended ammunition; Combat Extended is not required
+[*]Optional compatibility for Hauler's Dream, Pick Up And Haul, Digital Storage 3.0, and Manipulator Beam Emitter
+[*]On RimWorld 1.7, optional integrations also need a compatible 1.7 build of the other mod
+[*][b]Incompatible with Stack Gap[/b] — disable it first; old settings are not migrated
+[/list]
 
-• [b]Requires Harmony[/b]
-
-• On RimWorld 1.7, optional integrations also require a compatible 1.7 build of the other mod
-
-• Works with Combat Extended ammunition; Combat Extended is not required
-
-• Optional quota-aware batch support for Hauler's Dream and Pick Up And Haul, with vanilla hauling as the safe fallback
-
-• If both hauling mods are active, SGQ uses Hauler's Dream only; Hauler's Dream is designed to replace Pick Up And Haul
-
-• Optional compatibility for Digital Storage 3.0: items routed directly from a core are limited by the shelf's live quota instead of being fed back forever. Digital Storage Buffer Warehouses keep using their own Min/Max controls and are not managed by SGQ. Linking one to other shelves excludes that whole linked group from SGQ. If a physical shelf should retain stock, give its Digital Storage core a lower priority than the shelf
-
-• Optional compatibility for Manipulator Beam Emitter: ordinary stacks reserve both item count and a new stack slot, while every carried item is checked again on arrival. Several beams can work in parallel without repeatedly overfilling the same storage group
-
-• [b]Incompatible with Stack Gap[/b] — disable it first; its settings are not migrated
-
-[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]Source code, full documentation, and issue tracker[/url]
+[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]Full documentation, source code, and issue tracker[/url]
 
 [hr][/hr]
 
-[h1]存得刚刚好，也让小人真正取用得到[/h1]
+[h1]让每个货架都只放刚好够用的数量[/h1]
 
-Storage Group Quotas（存储组配额）为原版存储组增加[b]按物品分别计算的数量上限[/b]。链接在一起的物品架会作为一个整体统计。
+Storage Group Quotas（存储组配额）可以为物品架、储存区或一组已链接的物品架设置[b]按物品分别计算的存放上限[/b]。链接物品架共享一份配额，其他模组加入的可储存物品也能使用。
 
-它尤其适合弹药库：与其让所有小人等待同一个可能已被预留的大堆，不如保留多个真实堆栈，提供彼此独立的取用目标。
+[h2]殖民地里的常见用途[/h2]
+[list]
+[*]限制餐厅食品架只摆少量餐食，避免小人把整座冷库搬进餐厅。
+[*]限制囚犯区最多存放多少餐食，减少过量配送和腐坏。
+[*]限制牧场或喂食区的干草数量，避免高优先级物品架吸走全部牧草。
+[*]把 Combat Extended 或其他武器模组的弹药整理成几堆较小、随时可取的实体堆栈。
+[/list]
 
-配额列表采用熟悉的分类树：可以先给大类设置数值，再在子类中细分，只覆盖少数例外物品。在“类似堆栈 ×N”模式中，每堆上限和最大堆数分别独立继承。配额树在窗口打开期间会随原版允许物品列表刷新，两个窗口也会共享分类折叠状态。
+[b]配额是存放上限，不是最低库存或新的补货命令。[/b]何时入库仍由 RimWorld 的正常搬运决定。
 
-[h2]选择需要的模式[/h2]
-• [b]整个仓库数量[/b] — 该组内每种物品最多保留 X 件。适合药品、食物等只关心总数的物品。
+[h2]选择一种模式[/h2]
+[list]
+[*][b]整个仓库数量[/b] — 整个存储组内，每种选定物品最多保留 X 件。只关心总数时使用。
+[*][b]类似堆栈 ×N[/b] — 每堆最多 X 件，最多保留 N 个实体堆栈，总容量为 X × N。适合弹药和其他可能被多个小人同时取用的补给。
+[/list]
 
-• [b]类似堆栈 ×N[/b] — 每堆最多 X 件，最多保留 N 个真实堆栈；X 和 N 可分别继承或覆盖。它适合管理来自其他模组的内容，例如 Combat Extended 弹药；25 × 4 表示最多四堆、总容量 100。
+在部分搬运或预留模组的机制下，一堆实体物品同时可能只能由一个小人或任务占用。多个堆栈能提供彼此独立的取用目标，减少多人同时换弹或补给时的等待。例如 [b]25 × 4[/b] 表示最多 100 发，分布在最多四堆中。
 
-在部分搬运或预留优化模组下，一堆实体物品同时可能只能被一个小人或任务预留。多个堆栈能提供彼此独立的预留目标，减少多件武器同时换弹或补给时的排队。
+你可以先给整个分类设置数值，再细调子分类或单个物品。每种物品分别使用自己的配额；分类数值不是多种物品共用的一份混合总额。
 
-[h2]超量物品会去哪？[/h2]
-• 新的入库搬运不会超过存储组的剩余配额。
-
-• 已经超量的物品会由小人通过正常搬运移走，不会被删除或瞬移。
-
-• 启用 Hauler's Dream 或 Pick Up And Haul 时，小人可以把同一来源存储组内附近的多堆“总量超额”物品按负重批量装入库存。每次拾取和卸货都会重新核对实时配额，不会顺手搬走物品架上本应保留的部分。Hauler's Dream 会继续使用自身的智能超载及 Combat Extended 重量／体积规则。
-
-• 搬运工会优先送到该组之外的合法仓储；没有可用仓储时，则放到该组外可到达的地面。
-
-• 在“类似堆栈 ×N”模式中，搬运工会先尝试在组内拆分或归并；无法纳入所选布局的部分会移到组外。
+[h2]超量物品会怎样？[/h2]
+新的入库搬运会遵守配额。已有超量物品会通过正常搬运送到其他合法仓储；没有可用仓储时，则放到存储组外可到达的地面。“类似堆栈 ×N”会先尝试在组内整理。物品不会被删除或瞬移。
 
 [h2]使用方法[/h2]
-选择物品架或储存区 → 点击[b]存储配额[/b] → 选择模式 → 在分类树中为分类或单个物品设置数值。在“类似堆栈 ×N”模式中，[b]每堆上限[/b]和[b]最大堆数[/b]分别设置。窗口顶部的全局默认值只是可选的继承基准；未设置的子项会为每个字段分别继承最近的父级。
-
-[b]请注意：[/b]分类值会由每种后代物品分别计算；分类 N 表示每种物品各自拥有 N 个堆位，并不是整个分类共享 N 堆。“整个仓库数量”模式下，0 表示不限；“类似堆栈 ×N”模式下，每堆上限为 0 时使用该物品当前的堆叠上限，最大堆数则至少为 1。本模组不会全局修改 ThingDef.stackLimit。
+选择物品架或储存区 → 点击[b]存储配额[/b] → 选择模式 → 为分类或单个物品设置数值。
 
 [h2]需求与兼容[/h2]
-• RimWorld 1.6 与 1.7
+[list]
+[*]RimWorld 1.6 与 1.7
+[*][b]需要 Harmony[/b]
+[*]可用于 Combat Extended 弹药，但不强制依赖 CE
+[*]可选兼容 Hauler's Dream、Pick Up And Haul、【CA】数字存储-Digital Storage 3.0 与 Manipulator Beam Emitter（牵引光束）
+[*]在 RimWorld 1.7 中，可选适配还需要对应模组自身提供兼容的 1.7 版本
+[*][b]与 Stack Gap 不兼容[/b] — 请先禁用，旧设置不会迁移
+[/list]
 
-• [b]需要 Harmony[/b]
-
-• 在 RimWorld 1.7 中，可选适配还需要对应模组自身提供兼容的 1.7 版本
-
-• 可用于 Combat Extended 弹药，但不强制依赖 CE
-
-• 为 Hauler's Dream 与 Pick Up And Haul 提供可选的总量超额批量搬运适配；无法使用时会安全回退原版搬运
-
-• 若两个搬运模组同时启用，SGQ 只使用 Hauler's Dream；Hauler's Dream 本身用于替代 Pick Up And Haul
-
-• 可选兼容【CA】数字存储-Digital Storage 3.0：核心直接送往物品架的物品会受到实时配额限制，不会再被反复送回。数字存储的缓冲仓库继续使用自身 Min／Max，不由 SGQ 管理；如果它与其他物品架链接，整个链接组都会排除 SGQ。希望实体物品架保留库存时，请把数字存储核心的优先级设得低于该物品架
-
-• 可选兼容 Manipulator Beam Emitter（牵引光束）：普通物品会同时预留数量和新堆位，所有搬运物都会在到达时再次核对；多道光束可以并行工作，又不会反复把同一存储组塞过量
-
-• [b]与 Stack Gap 不兼容[/b] — 请先禁用；旧配置不会迁移
-
-[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]源代码、完整说明与问题反馈[/url]
+[url=https://github.com/Steel-Shadow/RimWorld-StorageGroupQuotas]完整说明、源代码与问题反馈[/url]
