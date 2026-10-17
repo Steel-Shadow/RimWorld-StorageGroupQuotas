@@ -19,6 +19,7 @@ namespace StorageGroupQuotas
             InventoryHaulingCompatibility.Apply(harmony);
             DigitalStorageCompatibility.Apply(harmony);
             ManipulatorBeamCompatibility.Apply(harmony);
+            StrataCompatibility.Apply(harmony);
 
             if (ModsConfig.IsActive("Andromeda.StackGap"))
             {
@@ -73,9 +74,26 @@ namespace StorageGroupQuotas
     {
         private static void Postfix(IntVec3 c, Map map, Thing thing, ref bool __result)
         {
-            if (__result && QuotaUtility.RemainingForDestination(thing, c, map) <= 0)
+            int remaining = QuotaUtility.RemainingForDestination(thing, c, map);
+            remaining = StrataCompatibility.LimitRemainingForReservations(
+                thing,
+                c,
+                map,
+                remaining);
+            if (remaining != int.MaxValue
+                && thing != null
+                && remaining < thing.stackCount)
             {
-                __result = false;
+                // Strata recovery carries one indivisible stack. Remember partial as well as
+                // zero capacity so a later failed storage search cannot fall through to Near.
+                StrataCompatibility.NoteQuotaRejectedDuringStorageSearch();
+            }
+            if (remaining <= 0)
+            {
+                if (__result)
+                {
+                    __result = false;
+                }
             }
         }
     }
@@ -91,9 +109,20 @@ namespace StorageGroupQuotas
             }
 
             int remaining = QuotaUtility.RemainingForDestination(t, storeCell, p.Map);
+            remaining = StrataCompatibility.LimitRemainingForReservations(
+                t,
+                storeCell,
+                p.Map,
+                remaining,
+                p.thingIDNumber);
             if (remaining == int.MaxValue)
             {
                 return;
+            }
+
+            if (t != null && remaining < t.stackCount)
+            {
+                StrataCompatibility.NoteQuotaRejectedDuringStorageSearch();
             }
 
             if (remaining <= 0)
@@ -106,8 +135,60 @@ namespace StorageGroupQuotas
             __result.haulOpportunisticDuplicates = false;
             if (__result.count <= 0)
             {
+                StrataCompatibility.NoteQuotaRejectedDuringStorageSearch();
                 __result = null;
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(Game), nameof(Game.FinalizeInit))]
+    internal static class Patch_Game_FinalizeInit_StrataQuotaState
+    {
+        private static void Postfix()
+        {
+            StrataCompatibility.ResetSession();
+        }
+    }
+
+    [HarmonyPatch(typeof(ThingGrid), nameof(ThingGrid.Register), new[] { typeof(Thing) })]
+    internal static class Patch_ThingGrid_Register_StrataQuotaSignal
+    {
+        private static void Postfix(Thing __0)
+        {
+            StrataCompatibility.NotifyStoredContentsChanged(__0);
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(ThingGrid),
+        nameof(ThingGrid.Deregister),
+        new[] { typeof(Thing), typeof(bool) })]
+    internal static class Patch_ThingGrid_Deregister_StrataQuotaSignal
+    {
+        private static void Prefix(Thing __0)
+        {
+            StrataCompatibility.NotifyStoredContentsChanged(__0);
+        }
+    }
+
+    [HarmonyPatch(typeof(Thing), nameof(Thing.SplitOff), new[] { typeof(int) })]
+    internal static class Patch_Thing_SplitOff_StrataQuotaSignal
+    {
+        private static void Postfix(Thing __instance)
+        {
+            StrataCompatibility.NotifyStoredContentsChanged(__instance);
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(Thing),
+        nameof(Thing.TryAbsorbStack),
+        new[] { typeof(Thing), typeof(bool) })]
+    internal static class Patch_Thing_TryAbsorbStack_StrataQuotaSignal
+    {
+        private static void Postfix(Thing __instance)
+        {
+            StrataCompatibility.NotifyStoredContentsChanged(__instance);
         }
     }
 
@@ -345,6 +426,35 @@ namespace StorageGroupQuotas
                     pawn.inventory.UnloadEverything = true;
                 }
             }
+        }
+
+        internal static List<Thing> TrackedHauledItemsSnapshot(Pawn pawn)
+        {
+            List<Thing> snapshot = new List<Thing>();
+            try
+            {
+                ThingComp comp = FindComp(pawn);
+                if (comp == null
+                    || getHauledThings == null
+                    || !(getHauledThings.Invoke(comp, null) is ICollection<Thing> hauledThings))
+                {
+                    return snapshot;
+                }
+
+                foreach (Thing thing in hauledThings)
+                {
+                    if (thing != null)
+                    {
+                        snapshot.Add(thing);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                LogInvocationWarning(exception);
+            }
+
+            return snapshot;
         }
 
         internal static void RequestUnload(Pawn pawn)

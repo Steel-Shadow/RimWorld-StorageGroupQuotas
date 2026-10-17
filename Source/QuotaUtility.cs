@@ -329,6 +329,21 @@ namespace StorageGroupQuotas
         {
             version++;
             settings?.owner?.Notify_SettingsChanged();
+            StrataCompatibility.NotifySettingsChanged(settings);
+        }
+
+        internal static void InvalidateOverflowSnapshot(Map map)
+        {
+            if (map != null)
+            {
+                Snapshots.Remove(map);
+            }
+        }
+
+        internal static void ResetSession()
+        {
+            Snapshots.Clear();
+            version++;
         }
 
         private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class

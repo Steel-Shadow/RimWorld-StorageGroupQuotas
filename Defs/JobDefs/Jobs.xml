@@ -7,4 +7,24 @@
     <casualInterruptible>false</casualInterruptible>
     <suspendable>false</suspendable>
   </JobDef>
+
+  <JobDef>
+    <defName>SGQ_HaulRejectedCargoToSafeCell</defName>
+    <driverClass>Verse.AI.JobDriver_HaulToCell</driverClass>
+    <reportString>moving rejected quota cargo to safe ground.</reportString>
+    <dropThingBeforeJob>false</dropThingBeforeJob>
+    <carryThingAfterJob>true</carryThingAfterJob>
+    <casualInterruptible>true</casualInterruptible>
+    <suspendable>false</suspendable>
+  </JobDef>
+
+  <JobDef>
+    <defName>SGQ_WaitWithRejectedQuotaCargo</defName>
+    <driverClass>Verse.AI.JobDriver_Wait</driverClass>
+    <reportString>waiting to move rejected quota cargo safely.</reportString>
+    <dropThingBeforeJob>false</dropThingBeforeJob>
+    <carryThingAfterJob>true</carryThingAfterJob>
+    <casualInterruptible>true</casualInterruptible>
+    <suspendable>false</suspendable>
+  </JobDef>
 </Defs>

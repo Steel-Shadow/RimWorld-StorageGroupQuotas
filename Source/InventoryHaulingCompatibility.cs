@@ -66,6 +66,21 @@ namespace StorageGroupQuotas
             }
         }
 
+        internal static bool IsPresent => backend != InventoryHaulingBackend.None;
+
+        internal static void RequestUnload(Pawn pawn)
+        {
+            switch (backend)
+            {
+                case InventoryHaulingBackend.HaulersDream:
+                    HaulersDreamCompatibility.RequestUnload(pawn);
+                    break;
+                case InventoryHaulingBackend.PickUpAndHaul:
+                    PickUpAndHaulCompatibility.RequestUnload(pawn);
+                    break;
+            }
+        }
+
         internal static bool AllowsThing(Pawn pawn, Thing thing)
         {
             switch (backend)
@@ -117,6 +132,19 @@ namespace StorageGroupQuotas
                 case InventoryHaulingBackend.PickUpAndHaul:
                     PickUpAndHaulCompatibility.UnregisterHauledItem(pawn, thing);
                     break;
+            }
+        }
+
+        internal static List<Thing> TrackedHauledItemsSnapshot(Pawn pawn)
+        {
+            switch (backend)
+            {
+                case InventoryHaulingBackend.HaulersDream:
+                    return HaulersDreamCompatibility.TrackedHauledItemsSnapshot(pawn);
+                case InventoryHaulingBackend.PickUpAndHaul:
+                    return PickUpAndHaulCompatibility.TrackedHauledItemsSnapshot(pawn);
+                default:
+                    return new List<Thing>();
             }
         }
 
@@ -469,6 +497,35 @@ namespace StorageGroupQuotas
             }
         }
 
+        internal static List<Thing> TrackedHauledItemsSnapshot(Pawn pawn)
+        {
+            List<Thing> snapshot = new List<Thing>();
+            try
+            {
+                ThingComp comp = FindComp(pawn);
+                if (comp == null
+                    || peekHashSet == null
+                    || !(peekHashSet.Invoke(comp, null) is ICollection<Thing> hauledThings))
+                {
+                    return snapshot;
+                }
+
+                foreach (Thing thing in hauledThings)
+                {
+                    if (thing != null)
+                    {
+                        snapshot.Add(thing);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                LogBatchWarning(exception);
+            }
+
+            return snapshot;
+        }
+
         internal static void RequestUnload(Pawn pawn)
         {
             if (pawn == null || requestUnload == null)
@@ -806,10 +863,58 @@ namespace StorageGroupQuotas
             toil.initAction = delegate
             {
                 Pawn pawn = toil.actor;
-                if (!HaulersDreamCompatibility.IsUnloadDriver(pawn?.jobs?.curDriver)
-                    || HaulersDreamCompatibility.PrepareQuotaPlacement(pawn))
+                try
                 {
-                    original();
+                    bool hdReady = !HaulersDreamCompatibility.IsUnloadDriver(
+                            pawn?.jobs?.curDriver)
+                        || HaulersDreamCompatibility.PrepareQuotaPlacement(pawn);
+                    if (hdReady && StrataCompatibility.PrepareFinalCellPlacement(pawn))
+                    {
+                        original();
+                    }
+                }
+                finally
+                {
+                    StrataCompatibility.NotifyCellPlacementFinished(pawn);
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// HaulToContainer also deposits the entire carried stack. Apply the same last-moment Strata
+    /// reservation check used for cell hauling so a quota change during the local walk cannot
+    /// overfill a shelf implementation that uses a container job.
+    /// </summary>
+    [HarmonyPatch(
+        typeof(Toils_Haul),
+        nameof(Toils_Haul.DepositHauledThingInContainer),
+        new[] { typeof(TargetIndex), typeof(TargetIndex), typeof(Action) })]
+    [HarmonyPriority(Priority.Last)]
+    internal static class Patch_Toils_Haul_DepositHauledThingInContainer_StrataQuota
+    {
+        private static void Postfix(Toil __result)
+        {
+            if (__result?.initAction == null)
+            {
+                return;
+            }
+
+            Toil toil = __result;
+            Action original = toil.initAction;
+            toil.initAction = delegate
+            {
+                Pawn pawn = toil.actor;
+                try
+                {
+                    if (StrataCompatibility.PrepareFinalCellPlacement(pawn))
+                    {
+                        original();
+                    }
+                }
+                finally
+                {
+                    StrataCompatibility.NotifyCellPlacementFinished(pawn);
                 }
             };
         }

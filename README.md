@@ -64,6 +64,7 @@ In **Similar stacks ×N**, the per-stack amount and maximum stack count are set 
 - Digital Storage 3.0 is optional. Its direct core-to-shelf and ground-item routes are clamped to the destination's live quota, so a core cannot immediately feed removed excess back into the same high-priority shelf.
 - Digital Storage Buffer Warehouses keep their own Min/Max behavior and are excluded from SGQ. If a Buffer Warehouse belongs to a linked storage group, the whole group is excluded to avoid two controllers issuing opposite work. To keep stock on a physical shelf, give the Digital Storage core a lower priority than that shelf; the core's own priority behavior is not changed.
 - Manipulator Beam Emitter is optional. Ordinary storage transfers reserve both an exact `(storage group, item)` amount and, when needed, one of that item's N physical stack slots. The shared budgets cover several beams and emitters targeting different cells. Every actual carried item is rechecked on arrival, including Bioferrite Harvester and Fermenting Barrel unloads whose product does not exist yet at claim time.
+- Strata 3.10+ is optional. Each floor remains its own quota scope. Cross-floor hauls reserve the destination amount and any new stack slot, then recheck the whole carried stack on arrival; SGQ overflow also wakes Strata's work relay. When Pick Up And Haul or Hauler's Dream is active, only the amount accepted by the destination quota is unloaded from inventory.
 - **Stack Gap (`Andromeda.StackGap`) is incompatible.** Disable it before enabling this mod. Its settings are not migrated.
 
 The Digital Storage adapter references and credits Cagier.阳 / CagierAsh123's [Digital Storage project](https://github.com/CagierAsh123/Digital-Storage).
@@ -111,6 +112,7 @@ Yes. Capacity is based on currently spawned contents; several already-created va
 | `Source/HarmonyPatches.cs` | Vanilla storage/UI patches, optional Pick Up And Haul integration, and the Combat Extended inventory adapter. |
 | `Source/InventoryHaulingCompatibility.cs` | Single-backend selection plus optional Hauler's Dream batching, tracking, unload guards, and quota-cell reservation restoration. |
 | `Source/ExternalStorageCompatibility.cs` | Reflection-only Digital Storage direct-route adapter, Buffer Warehouse exclusion, and Manipulator Beam amount/stack-slot reservations plus arrival guards. |
+| `Source/StrataCompatibility.cs` | Reflection-only Strata work-relay registration, cross-floor quota/stack-slot reservations, arrival guards, and quota-aware inventory delivery. |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | Ordinary hauling jobs for exact overflow removal and similar-stack rebalancing. |
 | `Source/JobDriver_HaulQuotaOverflowBatch.cs` | Optional inventory batch pickup and quota-checked unloading for total-count overflow. |
 | `Source/Window_StorageQuotas.cs` | Quota configuration window in the vanilla Storage tab. |
@@ -141,6 +143,7 @@ The mod has no `GameComponent`, `MapComponent`, or global `ModSettings`. Outside
 | Pick Up And Haul | `loadAfter` only | Optional integration: sort after it when installed, without making it required. |
 | Digital Storage 3.0 | `loadAfter` only | Optional integration: sort after `cagier.digitalstorage` before dynamically wrapping its private direct-routing methods. No hard assembly or package dependency is added. |
 | Manipulator Beam Emitter | `loadAfter` only | Optional integration: sort after `natsuki.manipulatorbeam` before dynamically adding quota reservations around beam claims and delivery. No hard dependency is added. |
+| Strata | `loadAfter` only | Optional integration: sort after `AzraelGodKing.Strata` before registering its public work probe and dynamically wrapping cross-floor haul APIs. No hard dependency is added. |
 | Stack Gap | `incompatibleWith` | Report a conflict instead of trying to solve incompatible storage-capacity patches through ordering. |
 | Combat Extended | No dependency or ordering rule | CE ammunition works as ordinary storable items. If CE is present, the optional batch path discovers `CompInventory` by reflection and honors its weight/bulk result; there is still no compile-time CE assembly dependency or patch-order edge. |
 
@@ -190,6 +193,7 @@ Both quantity and max-stack budgets are per exact `ThingDef`, not per category-w
 | `JobDriver_HaulToCell.TryMakePreToilReservations` postfix after HD | Restore destination-cell reservation when HD's Haul to Stack targets quota-managed storage. |
 | Digital Storage `ItemRouter` dynamic patches plus guarded `GenPlace.TryPlaceThing` prefix | Reject full quota targets, bind the exact route-selected cell to a thread-local context, clamp direct placement, and return only excess to the originating digital ledger. |
 | Manipulator Beam `BeamClaimUtility`, `BeamManipulatorUtility`, destruction, and minification dynamic patches | Reserve exact group-wide amounts and new-stack slots for ordinary transfers, update them on retarget, release them through native cleanup or emitter removal, and reject stale arrivals before they can overfill. |
+| Strata haul/work-relay dynamic patches | Publish SGQ overflow as remote work, clamp cross-floor pickup, reserve group amount and new-stack slots, follow fallback destination changes, and reject stale whole-stack placement on arrival. |
 
 `InventoryHaulingCompatibility` chooses one backend for the whole session: Hauler's Dream first, otherwise Pick Up And Haul, otherwise none. SGQ never registers one stack with both trackers. Missing or changed reflection APIs disable only batch hauling and fail closed to vanilla `HaulToCell`.
 
@@ -204,6 +208,8 @@ Digital Storage does not create a vanilla hauling job for these routes. Its adap
 Manipulator Beam normally chooses and claims a cell while still carrying the whole source-stack count. For ordinary storage transfers, SGQ adds an amount reservation keyed by object identity for the resolved `ISlotGroup` and exact `ThingDef`, plus a separate new-stack-slot reservation in Similar Stacks mode. A transfer-identity record handles release and retarget, including a move from an unlimited target into a quota-managed group. Claim-time availability subtracts other beams' amount and stack-slot reservations; destination rechecks and delivery exclude the current cell's own reservation. Bioferrite Harvester and Fermenting Barrel transfers cannot reserve at claim time because their `BeamTransfer.thing` is the producer building, not the later product, so the actual Bioferrite or Beer stack is guarded at arrival instead.
 
 Arrival also checks exact `CanStackWith` physical capacity, preventing a partial Direct placement from spilling its remainder through Near placement. If a target became stale, SGQ temporarily invalidates it and lets the beam's fallback return the whole carried stack. Interrupted transfers are redirected away from a full quota cell to an empty nearby non-storage cell, and destroying or minifying an automatic emitter releases both its native destination claims and SGQ reservations.
+
+Strata represents each floor as a separate `Map`, so SGQ intentionally does not merge quotas between floors. The optional adapter registers a Strata `WorkProbe` so quota overflow can attract a remote hauler, captures the exact destination selected for `Strata_HaulToLevel`, and commits an in-flight reservation only after the source item reservation succeeds. Reservations cover both total amount and Similar Stacks new-stack slots and move with a fallback destination. They are released after delivery or cargo loss; an interrupted or failed relay that still carries cargo becomes a serialized recovery marker, with bounded expiry reserved for genuinely lost state. Because Strata's final vanilla placement toils deposit an entire carried stack, arrival accepts that stack only when the live quota and physical cell can still hold all of it. Rejected cargo is placed directly on the pawn's cell or adjacent safe non-storage ground when possible; otherwise the pawn receives a normal delivery job, first trying nearby cells in distance order and then any reachable safe non-storage cell on the map. If none exists, a serialized wait job keeps the cargo carried and retries Strata delivery until a safe destination becomes available; interrupted recovery jobs rebuild their marker after loading. This prevents Strata's `Near` fallback from bypassing the quota. The adapter is reflection-only and fails open when Strata is absent.
 
 #### Overflow and rebalancing lifecycle
 
@@ -225,14 +231,14 @@ The registered work giver belongs to `Hauling`, has `priorityInType` 20, require
 #### Known limitations
 
 - RimWorld 1.6 and 1.7 are declared. The 1.7 build has been compiled and Harmony-patch-tested against RimWorld 1.7.4977 and Harmony 3.0.0-rc.2; optional integrations still depend on the other mod providing a compatible 1.7 release.
-- Ordinary in-flight vanilla hauling jobs do not reserve a group-wide numeric quota budget. Quota-managed `HaulToCell` jobs reserve their destination cell, HD inventory unloading is rechecked on arrival, and ordinary Manipulator Beam storage transfers reserve shared amount and new-stack-slot budgets; unsupported jobs aimed at different cells can still briefly race.
+- Ordinary in-flight vanilla hauling jobs do not reserve a group-wide numeric quota budget. Quota-managed `HaulToCell` jobs reserve their destination cell, HD inventory unloading is rechecked on arrival, and ordinary Manipulator Beam and Strata cross-floor storage transfers reserve shared amount and new-stack-slot budgets; unsupported jobs aimed at different cells can still briefly race.
 - An inventory batch collects at most 64 overflow source stacks within 12 cells of the selected stack per job. Additional excess is handled by later jobs.
 - A batch starts only when the selected backend's hauled-item set is empty. If HD/PUAH, its pawn comp, or an optional inventory API does not match the expected signatures, SGQ fails closed to vanilla `HaulToCell`.
-- Fully custom storage or hauling code other than the explicitly supported Digital Storage, Manipulator Beam, HD, and PUAH paths may ignore incoming limits; the cleanup work giver can still handle spawned excess later.
-- Digital Storage and Manipulator Beam are discovered by reflection. If a future release changes the expected private signatures, SGQ logs one compatibility warning and leaves that external route unchanged instead of preventing the game from loading.
+- Fully custom storage or hauling code other than the explicitly supported Digital Storage, Manipulator Beam, Strata, HD, and PUAH paths may ignore incoming limits; the cleanup work giver can still handle spawned excess later.
+- Digital Storage, Manipulator Beam, and Strata are discovered by reflection. If a future release changes the expected signatures, SGQ logs one compatibility warning and leaves that external route unchanged instead of preventing the game from loading.
 - Similar-stack budgets use each `ThingDef`'s effective inherited N; quality/material/hit-point variants do not each receive a separate N-stack allowance.
 - Internal rebalancing needs compatible stacks or free valid cells. Otherwise layout-only excess may be moved outside.
-- The floor fallback searches only within radius 40 and does not guarantee roofing, temperature control, or weather protection.
+- The floor fallback prefers cells within radius 40, then searches any reachable safe non-storage cell on the map; it does not guarantee roofing, temperature control, or weather protection.
 - The quota window polls the current vanilla allowed-def set once per rendered frame and rebuilds only when the effective candidate set changes. Disallowed quota or max-stack overrides and items still physically present remain listed in gray so they can be managed.
 - A multi-category `ThingDef` is shown only under `FirstThingCategory`; secondary category memberships do not participate in quota inheritance.
 - Stack Gap data is not migrated, and both mods must not run together.
@@ -320,6 +326,7 @@ RimWorld 1.6 与 1.7 · 需要 Harmony · 包 ID：`steelshadow.storagegroupquot
 - 【CA】数字存储-Digital Storage 3.0 是可选兼容。核心直达物品架和地面物品路由都会按目标的实时配额裁剪，因此核心不会把刚移出的超量物品立刻送回同一个高优先级物品架。
 - 数字存储的缓冲仓库继续使用自身 Min／Max，不由 SGQ 管理。如果缓冲仓库属于一个链接存储组，整个组都会排除 SGQ，避免两个控制器发布相反任务。希望实体物品架保留库存时，请把数字存储核心的优先级设得低于该物品架；SGQ 不改变核心自身的优先级语义。
 - Manipulator Beam Emitter（牵引光束）是可选兼容。普通仓储传送认领目标时会同时预留准确的“存储组＋物品”数量，以及需要新增时的一个 N 堆位；共享预算覆盖同一组中指向不同格位的多道光束和多个发射器。所有实际搬运物都会在到达时再次核对，包括认领时尚未生成产物的生物铁收割器和发酵桶卸货。
+- Strata 3.10+ 是可选兼容。每个楼层仍各自计算配额。跨层搬运会预留目标数量和所需的新堆位，并在到达后按整堆重新核对；SGQ 的超量工作也能唤醒 Strata 的跨层工作中继。启用 Pick Up And Haul 或 Hauler's Dream 时，库存只会卸下目标配额仍能接收的数量。
 - **与 Stack Gap（`Andromeda.StackGap`）不兼容。**启用本模组前请将其禁用；旧设置不会迁移。
 
 数字存储适配参考并标注了 Cagier.阳／CagierAsh123 的 [Digital Storage 项目](https://github.com/CagierAsh123/Digital-Storage)。
@@ -367,6 +374,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | `Source/HarmonyPatches.cs` | 原版仓储／界面补丁、Pick Up And Haul 可选适配及 Combat Extended 库存适配器。 |
 | `Source/InventoryHaulingCompatibility.cs` | 单一库存后端选择，以及 Hauler's Dream 批量搬运、登记、卸货保护和配额目标格预留恢复。 |
 | `Source/ExternalStorageCompatibility.cs` | 仅反射依赖的数字存储直达路由适配、缓冲仓库排除，以及牵引光束数量／堆位预留和到达保护。 |
+| `Source/StrataCompatibility.cs` | 仅反射依赖的 Strata 工作中继注册、跨层数量／堆位预留、到达保护与配额感知库存卸货。 |
 | `Source/WorkGiver_MoveQuotaOverflow.cs` | 用正常搬运工作准确移走超量物品并整理类似堆栈。 |
 | `Source/JobDriver_HaulQuotaOverflowBatch.cs` | 为总量超额提供可选的库存批量拾取，并在卸货时重新核对配额。 |
 | `Source/Window_StorageQuotas.cs` | 原版“存储”标签中的配额设置窗口。 |
@@ -397,6 +405,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | Pick Up And Haul | 仅 `loadAfter` | 可选适配：安装时排在它后面，但不会把它变成必需依赖。 |
 | Digital Storage 3.0 | 仅 `loadAfter` | 可选适配：排在 `cagier.digitalstorage` 后，再动态包装其私有直达路由；不新增程序集或模组硬依赖。 |
 | Manipulator Beam Emitter | 仅 `loadAfter` | 可选适配：排在 `natsuki.manipulatorbeam` 后，再为光束认领和送达动态加入配额预留；不新增硬依赖。 |
+| Strata | 仅 `loadAfter` | 可选适配：排在 `AzraelGodKing.Strata` 后，再注册其公开工作探针并动态包装跨层搬运接口；不新增硬依赖。 |
 | Stack Gap | `incompatibleWith` | 直接报告冲突，而不是试图用排序解决互不兼容的仓储容量补丁。 |
 | Combat Extended | 不声明依赖或顺序 | CE 弹药按普通可存储物品处理；启用 CE 时，可选批量路径会通过反射发现 `CompInventory` 并遵守其重量／体积结果，仍不在编译时依赖 CE 程序集，也不建立补丁顺序边。 |
 
@@ -446,6 +455,7 @@ Steam 创意工坊用户只需订阅并启用本模组及其必需的 Harmony �
 | HD 之后的 `JobDriver_HaulToCell.TryMakePreToilReservations` postfix | 当 HD 的“搬到已有堆栈”指向受配额管理的仓储时，恢复目标格预留。 |
 | 数字存储 `ItemRouter` 动态补丁与受保护的 `GenPlace.TryPlaceThing` prefix | 拒绝已满目标，把当前路由选中的准确格位绑定到线程局部上下文，裁剪直达投放，并只把超出部分退回原数字账本。 |
 | 牵引光束 `BeamClaimUtility`、`BeamManipulatorUtility`、销毁与收起动态补丁 | 为普通传送预留准确的全组数量和新堆位，改换目标时同步更新，经原生清理或移除发射器时释放，并在到达前拒绝已经过期的目标。 |
+| Strata 搬运／工作中继动态补丁 | 把 SGQ 超量发布为远程工作，裁剪跨层拾取量，预留全组数量和新堆位，跟随后备目标变化，并在到达时拒绝已过期的整堆投放。 |
 
 `InventoryHaulingCompatibility` 会在整个游戏会话中只选择一个后端：优先 Hauler's Dream，其次 Pick Up And Haul，否则不使用库存批量路径。SGQ 不会把同一堆物品同时登记给两个卸货系统；反射接口缺失或发生变化时，只关闭批量路径并安全回退到原版 `HaulToCell`。
 
@@ -460,6 +470,8 @@ SGQ 不直接复用两个搬运模组各自的批量驱动，因为它们都不�
 牵引光束原本会在仍持有整堆数量时选定并认领格位。对于普通仓储传送，SGQ 按解析后的 `ISlotGroup` 与精确 `ThingDef` 对象标识建立数量预留；在“类似堆栈 ×N”模式下，如果目标要形成新堆，还会另占一个堆位。按传送对象保存的记录负责释放和改换目标，包括从无限目标改到受配额管理目标。认领可用量会扣除其他光束的数量与堆位；目标重检和送达则排除当前格自己的预留。生物铁收割器和发酵桶在认领时的 `BeamTransfer.thing` 是生产建筑而不是稍后才生成的产物，因此不做错误的建筑配额预留，而是在到达时按实际生物铁或啤酒整堆核对。
 
 到达保护还会检查准确的 `CanStackWith` 物理容量，防止 Direct 只放下一部分后让 Near 把余量溢到旁边。若目标已经过期，SGQ 会暂时把它标为无效，让光束后备逻辑退回整份搬运物；中断传送若将落到已满配额格，会改放到附近空的非仓储地面。自动发射器被销毁或收起时，其原生目标认领与 SGQ 预留也会一并释放。
+
+Strata 会把每个楼层表示成独立 `Map`，因此 SGQ 刻意不把不同楼层合并成同一个配额范围。可选适配会注册 Strata `WorkProbe`，让配额超量能够吸引跨层小人；捕获 `Strata_HaulToLevel` 选中的准确目标，并且只在来源物品预约成功后提交在途预留。预留同时覆盖总数量与“类似堆栈 ×N”的新堆位，并随 Strata 改选的后备目标迁移。送达或货物消失后才会释放；跨层中断或失败时若小人仍携带货物，则改为可存档的恢复标记，只有确实丢失的状态才使用有界超时清理。由于 Strata 最终使用的原版投放动作会一次放下小人手中的整堆，抵达后只有在实时配额与格位物理容量都能容纳整堆时才会入库。被拒绝的货物会优先直接放到小人所在格或相邻的安全非仓储地面；若附近没有空位，则给小人一个普通搬运任务，先按距离搜索附近格位，再搜索地图上任意可到达的安全非仓储格。仍找不到时，会通过可存档的等待任务让小人继续携带并反复请求 Strata 安排投放；载入存档或恢复任务中断后也会重建保护标记，绝不让 Strata 的 `Near` 后备绕过配额。适配仅通过反射发现 Strata；未安装时不会产生硬依赖。
 
 #### 超量与堆栈整理流程
 
@@ -481,14 +493,14 @@ SGQ 不直接复用两个搬运模组各自的批量驱动，因为它们都不�
 #### 已知限制
 
 - 已声明支持 RimWorld 1.6 与 1.7；1.7 构建已在 RimWorld 1.7.4977 与 Harmony 3.0.0-rc.2 上完成编译和补丁挂载测试。可选适配仍取决于对应模组是否提供兼容的 1.7 版本。
-- 普通原版在途搬运任务不会预留整个存储组的“数值配额预算”。受配额管理的 `HaulToCell` 会预留目标格，HD 库存卸货会在到达时复核，普通牵引光束仓储传送则会预留共享的数量和新堆位预算；不受支持且指向不同格位的任务仍可能短暂竞争同一组容量。
+- 普通原版在途搬运任务不会预留整个存储组的“数值配额预算”。受配额管理的 `HaulToCell` 会预留目标格，HD 库存卸货会在到达时复核，普通牵引光束与 Strata 跨层仓储搬运则会预留共享的数量和新堆位预算；不受支持且指向不同格位的任务仍可能短暂竞争同一组容量。
 - 库存批量任务每次最多收集所选堆 12 格范围内的 64 个超量来源堆；其余超量由后续任务继续处理。
 - 只有当所选后端的小人搬运记录为空时才会开始 SGQ 批量任务。HD／PUAH、对应小人 Comp 或可选库存接口不符合预期签名时，SGQ 会关闭该路径并回退到原版 `HaulToCell`。
-- 除明确支持的数字存储、牵引光束、HD 与 PUAH 路径外，完全绕过这些原版方法的自定义仓储／搬运代码仍可能不遵守入库限制；物品生成后可由整理 WorkGiver 继续处理。
-- 数字存储与牵引光束通过反射发现。如果未来版本改变了预期的私有方法签名，SGQ 会只记录一次兼容警告并放过该外部路由，而不会阻止游戏载入。
+- 除明确支持的数字存储、牵引光束、Strata、HD 与 PUAH 路径外，完全绕过这些原版方法的自定义仓储／搬运代码仍可能不遵守入库限制；物品生成后可由整理 WorkGiver 继续处理。
+- 数字存储、牵引光束与 Strata 通过反射发现。如果未来版本改变了预期接口签名，SGQ 会只记录一次兼容警告并放过该外部路径，而不会阻止游戏载入。
 - 类似堆栈预算使用每个 `ThingDef` 继承得到的有效 N；不同品质、材质或耐久变体不会各自获得一份独立的 N 个堆位。
 - 组内整理需要兼容堆或合法空格，否则仅布局超额的部分也可能被搬出。
-- 地面后备只搜索半径 40，不保证屋顶、温控或天气保护。
+- 地面后备会优先搜索半径 40 内的格位，随后搜索地图上任意可到达的安全非仓储格；不保证屋顶、温控或天气保护。
 - 配额窗口每个渲染帧检查一次原版允许物品集合，仅在有效候选集合变化时重建；已有配额或最大堆数覆盖值，或仍实际存放的禁用物品会以灰色保留，便于继续管理。
 - 同时属于多个分类的 `ThingDef` 只显示在 `FirstThingCategory` 下；其他分类成员关系不参与配额继承。
 - Stack Gap 数据不会迁移，两个模组不能同时运行。
