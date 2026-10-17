@@ -22,6 +22,7 @@
     <li>Mehni.PickUpAndHaul</li>
     <li>cagier.digitalstorage</li>
     <li>natsuki.manipulatorbeam</li>
+    <li>AzraelGodKing.Strata</li>
   </loadAfter>
   <incompatibleWith>
     <li>Andromeda.StackGap</li>
@@ -36,6 +37,8 @@ Requires Harmony. Hauler's Dream and Pick Up And Haul are optional: when either 
 
 Optional compatibility is included for Digital Storage 3.0 and Manipulator Beam Emitter. Digital Storage's direct shelf routes are clamped to the live quota. Ordinary beam stacks reserve both their quota amount and any new stack slot; every actual carried item is checked again on arrival, preventing several beams from repeatedly overfilling the same group. Digital Storage Buffer Warehouses keep their own Min/Max controls and are excluded from SGQ; if linked to other shelves, the whole linked group is excluded. To keep items on a physical shelf, set the Digital Storage core below that shelf's priority.
 
+Strata 3.10+ is optional. Each floor keeps its own quota. Cross-floor hauling reserves the destination amount and any new stack slot, rechecks the whole carried stack on arrival, and exposes SGQ overflow to Strata's work relay. PUAH/Hauler's Dream inventory cargo unloads only what the live quota accepts.
+
 Incompatible with Stack Gap.
 
 为整个原版存储组设置按物品分别计算的数量上限；链接的物品架共享同一份配额。
@@ -47,6 +50,8 @@ Incompatible with Stack Gap.
 需要 Harmony。Hauler's Dream 与 Pick Up And Haul 均为可选适配；启用其中之一时，小人可把同一来源存储组中附近的总量超额物品按所选搬运模组的负重规则批量装入库存，并在卸货时重新核对实时配额。Hauler's Dream 的智能超载及 CE 重量／体积规则会被保留；无法使用兼容路径时仍回退原版搬运。
 
 可选兼容【CA】数字存储-Digital Storage 3.0 与 Manipulator Beam Emitter（牵引光束）。数字存储直接送往物品架的物品会按实时配额裁剪；普通物品的光束传送会同时预留数量和新堆位，所有实际搬运物都会在到达时再次核对，避免多道光束反复塞满同一存储组。数字存储的缓冲仓库继续使用自身 Min/Max，不由本模组管理；如果它链接到其他物品架，整个链接组都不显示或执行 SGQ 配额。希望实体物品架保留库存时，请把数字存储核心的优先级设得低于该物品架。
+
+Strata 3.10+ 为可选适配；每个楼层仍各自计算配额。跨层搬运会预留目标数量和新堆位、到达后按整堆复核，并把 SGQ 超量工作交给 Strata 的工作中继发现；PUAH／Hauler's Dream 库存只会卸下实时配额仍能接收的数量。
 
 与 Stack Gap 不兼容。</description>
 </ModMetaData>

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <SGQ_HaulQuotaOverflowBatch.reportString>正在批量搬运存储配额中的超量物品。</SGQ_HaulQuotaOverflowBatch.reportString>
+  <SGQ_HaulRejectedCargoToSafeCell.reportString>正在把被配额拒收的物品搬到安全地面。</SGQ_HaulRejectedCargoToSafeCell.reportString>
+  <SGQ_WaitWithRejectedQuotaCargo.reportString>正在等待安全处理被配额拒收的物品。</SGQ_WaitWithRejectedQuotaCargo.reportString>
 </LanguageData>
